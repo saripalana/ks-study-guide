@@ -2629,9 +2629,9 @@ const QUESTIONS = ﻿[
                               "D",
                               "E"
                           ],
-        "correctLetter":  "B",
-        "answerText":  null,
-        "explanation":  "Education Most alcohol-induced depressions, even severe, resolve within a few days to a month of abstinence without treatment. Typically, education and cognitive behavioral therapy (CBT) are the initial appropriate treatment options and there should be a 2- to 4-week trial of abstinence, education, and CBT before initiation of antidepressants. (278)"
+        "correctLetter":  "C",
+        "answerText":  "Education",
+        "explanation":  "Most alcohol-induced depressions, even severe, resolve within a few days to a month of abstinence without treatment. Typically, education and cognitive behavioral therapy (CBT) are the initial appropriate treatment options and there should be a 2- to 4-week trial of abstinence, education, and CBT before initiation of antidepressants. (278)"
     },
     {
         "id":  "k-4.11",
@@ -3550,48 +3550,72 @@ const QUESTIONS = ﻿[
         "chapter":  5,
         "chapterTitle":  "Schizophrenia Spectrum and Other Psychotic Disorders",
         "qnum":  10,
-        "question":  "A 43-year-old man is emergently admitted to an inpatient psychiatric facility for the fifth time in 12 months after EMS was called to his parents\u0027 house due to him running naked in living room and overturning furniture. When told to stop, he ran outside and started pulling up clumps of grass out of the lawn. He was first diagnosed with schizophrenia at age 22, and has been treated with haloperidol,     fluphenazine,  aripiprazole, aripiprazole lauroxil, and paliperidone. He is currently on paliperidone palmitate every month. The previous medications have either been ineffective or partially effective at maximum doses. His parents assure the admitting physician that they made sure he took his oral medication daily, and that they take him to follow-up appointments. \"No medicine has worked for him for long.\" He has mild hypercholesterolemia. Comprehensive metabolic panel is within normal limits. What should be the next step in his medication regimen? A. Augment with an oral first-generation antipsychotic B. Change to a first-generation long-acting injection C. Change to clozapine D. Change to the 3-month formulation of paliperidone palmitate E. Augment with a first-generation long-acting injection",
+        "question":  "A 43-year-old man is emergently admitted to an inpatient psychiatric facility for the fifth time in 12 months after EMS was called to his parents\u0027 house due to him running naked in living room and overturning furniture. When told to stop, he ran outside and started pulling up clumps of grass out of the lawn. He was first diagnosed with schizophrenia at age 22, and has been treated with haloperidol,     fluphenazine,  aripiprazole, aripiprazole lauroxil, and paliperidone. He is currently on paliperidone palmitate every month. The previous medications have either been ineffective or partially effective at maximum doses. His parents assure the admitting physician that they made sure he took his oral medication daily, and that they take him to follow-up appointments. \"No medicine has worked for him for long.\" He has mild hypercholesterolemia. Comprehensive metabolic panel is within normal limits. What should be the next step in his medication regimen?",
         "choices":  [
-
+                        "Augment with an oral first-generation antipsychotic",
+                        "Change to a first-generation long-acting injection",
+                        "Change to clozapine",
+                        "Change to the 3-month formulation of paliperidone palmitate",
+                        "Augment with a first-generation long-acting injection"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "Change to clozapine The patient has adequately tried and failed over four different first- and second-generation antipsychotics, in both oral and long-acting injectable forms. Given that his parents are diligent about making sure he takes his oral medications and taking him to appointments, clozapine should be the next consideration. Changing to a longer- acting form of a medication he is currently not doing well on is likely to be just as ineffective, especially since he has already been on both first-generation antipsychotics that are available as a long-acting injection. He should try what is considered the most effective antipsychotic as monotherapy before combining two antipsychotics. (354)"
+        "answerText":  "Change to clozapine",
+        "explanation":  "The patient has adequately tried and failed over four different first- and second-generation antipsychotics, in both oral and long-acting injectable forms. Given that his parents are diligent about making sure he takes his oral medications and taking him to appointments, clozapine should be the next consideration. Changing to a longer- acting form of a medication he is currently not doing well on is likely to be just as ineffective, especially since he has already been on both first-generation antipsychotics that are available as a long-acting injection. He should try what is considered the most effective antipsychotic as monotherapy before combining two antipsychotics. (354)"
     },
     {
         "id":  "k-5.11",
         "chapter":  5,
         "chapterTitle":  "Schizophrenia Spectrum and Other Psychotic Disorders",
         "qnum":  11,
-        "question":  "Patients who show any improvement on an antipsychotic should remain on that medication to monitor for further improvement for at least what length of time? A. Four weeks B. Six weeks C. Three months D. Six months E. One year",
+        "question":  "Patients who show any improvement on an antipsychotic should remain on that medication to monitor for further improvement for at least what length of time?",
         "choices":  [
-
+                        "Four weeks",
+                        "Six weeks",
+                        "Three months",
+                        "Six months",
+                        "One year"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "Three months An adequate trial of an antipsychotic medication is 4 to 6 weeks at an adequate dose. If the patient shows improvement, they should remain on that medication for at least 3 and up to 6 months, as improvements can continue to occur over that length of time. (355)"
+        "answerText":  "Three months",
+        "explanation":  "An adequate trial of an antipsychotic medication is 4 to 6 weeks at an adequate dose. If the patient shows improvement, they should remain on that medication for at least 3 and up to 6 months, as improvements can continue to occur over that length of time. (355)"
     },
     {
         "id":  "k-5.12",
         "chapter":  5,
         "chapterTitle":  "Schizophrenia Spectrum and Other Psychotic Disorders",
         "qnum":  12,
-        "question":  "CT scans of patients with schizophrenia consistently show what neuroanatomical abnormality? A. Decreased number of D2 receptors in the caudate B. Enlarged ventricles C. Increased white matter in the thalamus D. Enlarged amygdala",
+        "question":  "CT scans of patients with schizophrenia consistently show what neuroanatomical abnormality?",
         "choices":  [
+                        "Decreased number of D2 receptors in the caudate",
+                        "Enlarged ventricles",
+                        "Increased white matter in the thalamus",
+                        "Enlarged amygdala",
                         "Decreased density of D2 receptors in the nucleus accumbens"
                     ],
         "choiceLetters":  [
+                              "A",
+                              "B",
+                              "C",
+                              "D",
                               "E"
                           ],
         "correctLetter":  "B",
-        "answerText":  null,
-        "explanation":  "Enlarged ventricles Enlarged third and lateral ventricles are a consistent finding in the brains of individuals with schizophrenia. Many structures, such as those of the limbic system (amygdala, hippocampus, and parahippocampal gyrus) and the thalamus are reduced in size. However, there is an increase in the D2 receptor density in the caudate, putamen, and nucleus accumbens. (358)"
+        "answerText":  "Enlarged ventricles",
+        "explanation":  "Enlarged third and lateral ventricles are a consistent finding in the brains of individuals with schizophrenia. Many structures, such as those of the limbic system (amygdala, hippocampus, and parahippocampal gyrus) and the thalamus are reduced in size. However, there is an increase in the D2 receptor density in the caudate, putamen, and nucleus accumbens. (358)"
     },
     {
         "id":  "k-5.13",
@@ -6384,12 +6408,22 @@ const QUESTIONS = ﻿[
         "chapter":  16,
         "chapterTitle":  "Human Sexuality and Sexual Dysfunctions",
         "qnum":  12,
-        "question":  "What ages of the child and patient and age difference between them are required for a diagnosis of pedophilia? Child  Patient   Age difference A. \u003c10 years     16 years  3 years B. \u003c14 years     18 years  3 years C. \u003c10 years     18 years  N/A D. \u003c14 years     16 years  5 years E. \u003c10 years     16 years  N/A F. \u003c14 years     18 years  5 years",
+        "question":  "What ages of the child and patient and age difference between them are required for a diagnosis of pedophilia? Child  Patient   Age difference",
         "choices":  [
-
+                        "\u003c10 years     16 years  3 years",
+                        "\u003c14 years     18 years  3 years",
+                        "\u003c10 years     18 years  N/A",
+                        "\u003c14 years     16 years  5 years",
+                        "\u003c10 years     16 years  N/A",
+                        "\u003c14 years     18 years  5 years"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E",
+                              "F"
                           ],
         "correctLetter":  "D",
         "answerText":  null,
@@ -7934,48 +7968,70 @@ const QUESTIONS = ﻿[
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  20,
-        "question":  "A 30-year-old woman on a telepsych appointment with a psychiatrist complains of \"being so depressed for the last month that I can\u0027t get out of bed. That\u0027s why I couldn\u0027t come in.\" She states that she was diagnosed with major depressive disorder (MDD) 10 years ago, and has had six such episodes in that time, which also included increased appetite, decreased concentration, withdrawal from friends and family, and poor energy. She reports that the symptoms usually resolve in about 2 months, and that she will \"ride it out\" because she does not like to take medication. She notes that her husband is very understanding during these periods and does extra work around the house while she recovers. She is concerned this time because she has started to hear voices over the last 3 days telling her that she should kill herself. \"This is the most depressed I have ever been, and these voices are scaring me. I don\u0027t know what to do!\" She is diagnosed with hypothyroidism, which has been well controlled with synthetic thyroid hormone. Thyroid function tests done 3 months ago were in the normal range. She has no other medical illnesses and is on no other medications. Mental status examination reveals an anxious affect. She is tearful at times. She states that she is willing to \"do whatever it takes\" to get better. What should be the treatment for this patient? A. An antidepressant medication only B. An antipsychotic medication only C. An antidepressant and an antipsychotic medication D. Electroconvulsive therapy (ECT) only E. ECT and an antidepressant medication",
+        "question":  "A 30-year-old woman on a telepsych appointment with a psychiatrist complains of \"being so depressed for the last month that I can\u0027t get out of bed. That\u0027s why I couldn\u0027t come in.\" She states that she was diagnosed with major depressive disorder (MDD) 10 years ago, and has had six such episodes in that time, which also included increased appetite, decreased concentration, withdrawal from friends and family, and poor energy. She reports that the symptoms usually resolve in about 2 months, and that she will \"ride it out\" because she does not like to take medication. She notes that her husband is very understanding during these periods and does extra work around the house while she recovers. She is concerned this time because she has started to hear voices over the last 3 days telling her that she should kill herself. \"This is the most depressed I have ever been, and these voices are scaring me. I don\u0027t know what to do!\" She is diagnosed with hypothyroidism, which has been well controlled with synthetic thyroid hormone. Thyroid function tests done 3 months ago were in the normal range. She has no other medical illnesses and is on no other medications. Mental status examination reveals an anxious affect. She is tearful at times. She states that she is willing to \"do whatever it takes\" to get better. What should be the treatment for this patient?",
         "choices":  [
-
+                        "An antidepressant medication only",
+                        "An antipsychotic medication only",
+                        "An antidepressant and an antipsychotic medication",
+                        "Electroconvulsive therapy (ECT) only",
+                        "ECT and an antidepressant medication"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "An antidepressant and an antipsychotic medication The patient is experiencing MDD with psychotic features, as the psychosis emerged during the most severe of her depressive episodes. Had she had steady psychotic symptoms with intermittent episodes of depression, the diagnosis would be schizoaffective disorder, depressive type. First-line treatment for MDD with psychotic features consists of treating both the depression with an antidepressant and the psychosis with an antipsychotic. Though treatment with only an antidepressant should eventually lead to resolution of the psychosis once the depression remits, this would likely take weeks, and she is having command hallucinations of suicide, which warrants aggressive treatment. ECT is also effective for this diagnosis, but given that she is medication na-ve and not in imminent danger of self-harm, medication should be tried first. (617)"
+        "answerText":  "An antidepressant and an antipsychotic medication",
+        "explanation":  "The patient is experiencing MDD with psychotic features, as the psychosis emerged during the most severe of her depressive episodes. Had she had steady psychotic symptoms with intermittent episodes of depression, the diagnosis would be schizoaffective disorder, depressive type. First-line treatment for MDD with psychotic features consists of treating both the depression with an antidepressant and the psychosis with an antipsychotic. Though treatment with only an antidepressant should eventually lead to resolution of the psychosis once the depression remits, this would likely take weeks, and she is having command hallucinations of suicide, which warrants aggressive treatment. ECT is also effective for this diagnosis, but given that she is medication na-ve and not in imminent danger of self-harm, medication should be tried first. (617)"
     },
     {
         "id":  "k-21.21",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  21,
-        "question":  "What is the usual mechanism of orthostatic hypotension      from  first-generation antipsychotics? A. Beta-2 receptor agonism B. D2 receptor antagonism C. Alpha-1 receptor blockade D. Acetylcholine receptor antagonism E. H1 receptor blockade",
+        "question":  "What is the usual mechanism of orthostatic hypotension      from  first-generation antipsychotics?",
         "choices":  [
-
+                        "Beta-2 receptor agonism",
+                        "D2 receptor antagonism",
+                        "Alpha-1 receptor blockade",
+                        "Acetylcholine receptor antagonism",
+                        "H1 receptor blockade"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "Alpha-1 receptor blockade Orthostatic hypotension is a result of alpha-1 receptor blockade. H1 receptor blockade leads to sedation. D2 receptor antagonism is the mechanism that leads to symptom relief in psychotic disorders, as well as Parkinsonian and prolactin side effects. Acetylcholine antagonism, which is stronger in low-potency, first- generation antipsychotics, includes side effects such as dry mouth, blurred vision, constipation, and urinary retention. Beta-2 receptor agonism can lead to trembling, increased heart rate, nervousness, and headache. (619, 620)"
+        "answerText":  "Alpha-1 receptor blockade",
+        "explanation":  "Orthostatic hypotension is a result of alpha-1 receptor blockade. H1 receptor blockade leads to sedation. D2 receptor antagonism is the mechanism that leads to symptom relief in psychotic disorders, as well as Parkinsonian and prolactin side effects. Acetylcholine antagonism, which is stronger in low-potency, first- generation antipsychotics, includes side effects such as dry mouth, blurred vision, constipation, and urinary retention. Beta-2 receptor agonism can lead to trembling, increased heart rate, nervousness, and headache. (619, 620)"
     },
     {
         "id":  "k-21.22",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  22,
-        "question":  "Increased secretion of prolactin caused by antipsychotic medication dopamine receptor blockade occurs via what neuroanatomical tract? A. Mesocortical B. Mesolimbic C. Nigrostriatal D. Tuberoinfundibular",
+        "question":  "Increased secretion of prolactin caused by antipsychotic medication dopamine receptor blockade occurs via what neuroanatomical tract?",
         "choices":  [
-
+                        "Mesocortical",
+                        "Mesolimbic",
+                        "Nigrostriatal",
+                        "Tuberoinfundibular"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D"
                           ],
         "correctLetter":  "D",
-        "answerText":  null,
-        "explanation":  "Tuberoinfundibular Prolactin secretion is usually kept in check via dopamine release. Once that dopamine release is blocked by antipsychotics, prolactin increases. Dopamine blockade in the mesocortical pathway leads to a blockade of reward and pleasure, as well as an increase in negative symptoms. Dopamine blockade in the nigrostriatal pathway can lead to Parkinsonian symptoms. Blockade in the mesolimbic system leads to the desired reduction in positive symptoms. (620)"
+        "answerText":  "Tuberoinfundibular",
+        "explanation":  "Prolactin secretion is usually kept in check via dopamine release. Once that dopamine release is blocked by antipsychotics, prolactin increases. Dopamine blockade in the mesocortical pathway leads to a blockade of reward and pleasure, as well as an increase in negative symptoms. Dopamine blockade in the nigrostriatal pathway can lead to Parkinsonian symptoms. Blockade in the mesolimbic system leads to the desired reduction in positive symptoms. (620)"
     },
     {
         "id":  "k-21.23",
@@ -8847,97 +8903,141 @@ const QUESTIONS = ﻿[
                         "Increase the methylphenidate to a maximum of 30 mg twice a day",
                         "Change the medication to atomoxetine",
                         "Augment the medication with clonidine",
-                        "Change the medication to mixed amphetamine salts E. Augment the medication with bupropion"
+                        "Change the medication to mixed amphetamine salts",
+                        "Augment the medication with bupropion"
                     ],
         "choiceLetters":  [
                               "A",
                               "B",
                               "C",
-                              "D"
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "D",
-        "answerText":  null,
-        "explanation":  "Change the medication to mixed amphetamine salts Both methylphenidate and amphetamine preparations of stimulants are effective about 75% of the time. In patients who do not respond to one of the medications, about 70% will respond to the other, which should be tried unless there is a contraindication. Atomoxetine is considered second-line therapy for ADHD, and alpha-2 agonists and bupropion are further down. If there has been a negligible therapeutic effect at 20 mg twice a day, yet the patient is experiencing side effects, increasing the dose further is unlikely to be of much benefit. (682)"
+        "answerText":  "Change the medication to mixed amphetamine salts",
+        "explanation":  "Both methylphenidate and amphetamine preparations of stimulants are effective about 75% of the time. In patients who do not respond to one of the medications, about 70% will respond to the other, which should be tried unless there is a contraindication. Atomoxetine is considered second-line therapy for ADHD, and alpha-2 agonists and bupropion are further down. If there has been a negligible therapeutic effect at 20 mg twice a day, yet the patient is experiencing side effects, increasing the dose further is unlikely to be of much benefit. (682)"
     },
     {
         "id":  "k-21.60",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  60,
-        "question":  "A 10-year-old girl is brought to the outpatient clinic by her parents after a referral from school due to the child \"staring off into space\" for the last 4 months. Her teacher reported that she has forgotten to turn in her homework several times and that her desk is disorganized. At home, she takes 30 minutes to do a 10-minute school assignment, which is then littered with careless mistakes. \"She is making C\u0027s when we know she has the ability to make A\u0027s.\" Her parents also report that she \"sometimes doesn\u0027t seem to be listening when we talk to her. She\u0027s not ignoring us, her mind is just somewhere else.\" She was diagnosed with persistent motor tic disorder 3 years ago, and though she displays symptoms, she says she is not bothered by them. She is on no medications. Vital signs are within normal limits. Physical examination is noncontributory. What is the first-line pharmacologic treatment for this child? A. Atomoxetine B. Methylphenidate C. Clonidine D. Bupropion E. Guanfacine",
+        "question":  "A 10-year-old girl is brought to the outpatient clinic by her parents after a referral from school due to the child \"staring off into space\" for the last 4 months. Her teacher reported that she has forgotten to turn in her homework several times and that her desk is disorganized. At home, she takes 30 minutes to do a 10-minute school assignment, which is then littered with careless mistakes. \"She is making C\u0027s when we know she has the ability to make A\u0027s.\" Her parents also report that she \"sometimes doesn\u0027t seem to be listening when we talk to her. She\u0027s not ignoring us, her mind is just somewhere else.\" She was diagnosed with persistent motor tic disorder 3 years ago, and though she displays symptoms, she says she is not bothered by them. She is on no medications. Vital signs are within normal limits. Physical examination is noncontributory. What is the first-line pharmacologic treatment for this child?",
         "choices":  [
-
+                        "Atomoxetine",
+                        "Methylphenidate",
+                        "Clonidine",
+                        "Bupropion",
+                        "Guanfacine"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "B",
-        "answerText":  null,
-        "explanation":  "Methylphenidate The first-line pharmacologic treatment for ADHD, inattentive type is a stimulant. It had long been thought that stimulants can exacerbate tics, but current research has shown that this is not an absolute, with some research showing that tics may improve after stimulant treatment. However, some tics may worsen with methylphenidate, but this is not a contraindication to attempting a stimulant. The other treatments may be effective, but they are not first line. (683)"
+        "answerText":  "Methylphenidate",
+        "explanation":  "The first-line pharmacologic treatment for ADHD, inattentive type is a stimulant. It had long been thought that stimulants can exacerbate tics, but current research has shown that this is not an absolute, with some research showing that tics may improve after stimulant treatment. However, some tics may worsen with methylphenidate, but this is not a contraindication to attempting a stimulant. The other treatments may be effective, but they are not first line. (683)"
     },
     {
         "id":  "k-21.61",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  61,
-        "question":  "A 7-year-old boy who has been on lisdexamfetamine for the last 6 months is brought by his parents to the outpatient clinic for a 2-month follow-up on his progress at school. He is seen by the nurse, who takes his height, weight, and vitals. What measurement is most likely to have decreased since he began the medication? A. Heart rate B. Respirations C. Weight D. Height E. Blood pressure",
+        "question":  "A 7-year-old boy who has been on lisdexamfetamine for the last 6 months is brought by his parents to the outpatient clinic for a 2-month follow-up on his progress at school. He is seen by the nurse, who takes his height, weight, and vitals. What measurement is most likely to have decreased since he began the medication?",
         "choices":  [
-
+                        "Heart rate",
+                        "Respirations",
+                        "Weight",
+                        "Height",
+                        "Blood pressure"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "Weight Stimulant medications can cause the heart rate and blood pressure to increase, not decrease. Though growth suppression is often a concern, studies do not support long-term growth suppression as a side effect. Even if it were to occur, the child would not lose height, just not gain as much as projected. A notorious and common side effect of stimulants is anorexia, which can lead to a measurable weight loss. This can sometimes be mitigated by giving the medication after a meal or by adding caloric supplements during the day. (683, 684)"
+        "answerText":  "Weight",
+        "explanation":  "Stimulant medications can cause the heart rate and blood pressure to increase, not decrease. Though growth suppression is often a concern, studies do not support long-term growth suppression as a side effect. Even if it were to occur, the child would not lose height, just not gain as much as projected. A notorious and common side effect of stimulants is anorexia, which can lead to a measurable weight loss. This can sometimes be mitigated by giving the medication after a meal or by adding caloric supplements during the day. (683, 684)"
     },
     {
         "id":  "k-21.62",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  62,
-        "question":  "What is atomoxetine\u0027s mechanism of action? A. Alpha-2 agonism B. Dopamine reuptake inhibition C. Increased dopamine release D. Norepinephrine reuptake inhibition E. GABA inhibition",
+        "question":  "What is atomoxetine\u0027s mechanism of action?",
         "choices":  [
-
+                        "Alpha-2 agonism",
+                        "Dopamine reuptake inhibition",
+                        "Increased dopamine release",
+                        "Norepinephrine reuptake inhibition",
+                        "GABA inhibition"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "D",
-        "answerText":  null,
-        "explanation":  "Norepinephrine reuptake inhibition Atomoxetine works by inhibiting the presynaptic norepinephrine transporter, thus decreasing norepinephrine reuptake. Clonidine and guanfacine are alpha-agonists used in the treatment of ADHD. Bupropion works by inhibiting norepinephrine and dopamine reuptake. Stimulants increase dopamine and norepinephrine release. Flumazenil is a GABA inhibitor used to reverse the effects of benzodiazepines. (686)"
+        "answerText":  "Norepinephrine reuptake inhibition",
+        "explanation":  "Atomoxetine works by inhibiting the presynaptic norepinephrine transporter, thus decreasing norepinephrine reuptake. Clonidine and guanfacine are alpha-agonists used in the treatment of ADHD. Bupropion works by inhibiting norepinephrine and dopamine reuptake. Stimulants increase dopamine and norepinephrine release. Flumazenil is a GABA inhibitor used to reverse the effects of benzodiazepines. (686)"
     },
     {
         "id":  "k-21.63",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  63,
-        "question":  "Place buprenorphine, methadone, and naltrexone in order of effect on the --opioid receptor from agonist to antagonist. A. Methadone \u003e naltrexone \u003e buprenorphine B. Naltrexone \u003e methadone \u003e buprenorphine C. Buprenorphine \u003e methadone \u003e naltrexone D. Naltrexone \u003e buprenorphine \u003e methadone E. Methadone \u003e buprenorphine \u003e naltrexone F. Buprenorphine \u003e naltrexone \u003e methadone",
+        "question":  "Place buprenorphine, methadone, and naltrexone in order of effect on the --opioid receptor from agonist to antagonist.",
         "choices":  [
-
+                        "Methadone \u003e naltrexone \u003e buprenorphine",
+                        "Naltrexone \u003e methadone \u003e buprenorphine",
+                        "Buprenorphine \u003e methadone \u003e naltrexone",
+                        "Naltrexone \u003e buprenorphine \u003e methadone",
+                        "Methadone \u003e buprenorphine \u003e naltrexone",
+                        "Buprenorphine \u003e naltrexone \u003e methadone"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E",
+                              "F"
                           ],
         "correctLetter":  "E",
-        "answerText":  null,
-        "explanation":  "Methadone \u003e buprenorphine \u003e naltrexone Methadone is a full --opioid receptor agonist which is used for short- and long-term opioid detoxification as well as maintenance. Buprenorphine is a partial --opioid receptor agonist, and therefore produces a milder withdrawal than a full agonist. Naltrexone is a --opioid antagonist that reverses the effects of opioid receptor agonists and precipitates a withdrawal reaction. (687, 689)"
+        "answerText":  "Methadone \u003e buprenorphine \u003e naltrexone",
+        "explanation":  "Methadone is a full --opioid receptor agonist which is used for short- and long-term opioid detoxification as well as maintenance. Buprenorphine is a partial --opioid receptor agonist, and therefore produces a milder withdrawal than a full agonist. Naltrexone is a --opioid antagonist that reverses the effects of opioid receptor agonists and precipitates a withdrawal reaction. (687, 689)"
     },
     {
         "id":  "k-21.64",
         "chapter":  21,
         "chapterTitle":  "Psychopharmacology",
         "qnum":  64,
-        "question":  "A 45-year-old man on methadone maintenance therapy for the last 5 years presents to the emergency department with complaints of headache, anxiety, nausea, and jitteriness. He states that the symptoms began 4 days ago when he stopped going to the methadone clinic and have gotten progressively worse. He states that he wants to \"be done with all this addiction stuff, so I figured I\u0027d go cold turkey.\" He now feels he underestimated the withdrawal symptoms, but still wants to \"push through.\" What medication would be most appropriate for the patient at this time? A. Methadone B. Buprenorphine C. Clonidine D. Naltrexone E. Tramadol",
+        "question":  "A 45-year-old man on methadone maintenance therapy for the last 5 years presents to the emergency department with complaints of headache, anxiety, nausea, and jitteriness. He states that the symptoms began 4 days ago when he stopped going to the methadone clinic and have gotten progressively worse. He states that he wants to \"be done with all this addiction stuff, so I figured I\u0027d go cold turkey.\" He now feels he underestimated the withdrawal symptoms, but still wants to \"push through.\" What medication would be most appropriate for the patient at this time?",
         "choices":  [
-
+                        "Methadone",
+                        "Buprenorphine",
+                        "Clonidine",
+                        "Naltrexone",
+                        "Tramadol"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "C",
-        "answerText":  null,
-        "explanation":  "Clonidine The patient is experiencing classic withdrawal from a -- opioid agonist. Given that he has expressed a desire to come off of such drugs/medications, restarting methadone, or starting buprenorphine or tramadol, would be counter to his wishes. Naloxone could make him feel worse, as it would displace any residual methadone. Clonidine is used to mitigate the adrenergic effects of withdrawal, such as jitteriness and anxiety. However, it will not help the gastrointestinal (GI) symptoms. (689)"
+        "answerText":  "Clonidine",
+        "explanation":  "The patient is experiencing classic withdrawal from a -- opioid agonist. Given that he has expressed a desire to come off of such drugs/medications, restarting methadone, or starting buprenorphine or tramadol, would be counter to his wishes. Naloxone could make him feel worse, as it would displace any residual methadone. Clonidine is used to mitigate the adrenergic effects of withdrawal, such as jitteriness and anxiety. However, it will not help the gastrointestinal (GI) symptoms. (689)"
     },
     {
         "id":  "k-21.65",
@@ -9517,47 +9617,69 @@ const QUESTIONS = ﻿[
         "question":  "A 40-year-old woman was just recently diagnosed with cancer and has minimal time, struggling between being compliant with medical treatments, managing her job, and caring for her kids. She expresses concern about having the time and money for therapy. She feels that her life was great prior to her cancer diagnosis and is hoping the symptoms will pass on their own. Her oncologist is concerned about her missing appointments and that she struggles with getting out of bed and caring for herself. Upon expressing feelings of hopelessness, her oncologist encourages her to start therapy though she remains skeptical. Which therapy is she best suited toward?",
         "choices":  [
                         "Cognitive behavioral therapy",
-                        "Expressive psychotherapy C. Interpersonal psychotherapy D. Psychodynamic psychotherapy E. Supportive psychotherapy"
+                        "Expressive psychotherapy",
+                        "Interpersonal psychotherapy",
+                        "Psychodynamic psychotherapy",
+                        "Supportive psychotherapy"
                     ],
         "choiceLetters":  [
                               "A",
-                              "B"
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "E",
-        "answerText":  null,
-        "explanation":  "Supportive psychotherapy Supportive psychotherapy focuses on external rather than intrapsychic events and on how stressful environmental and interpersonal influences can damage the self. It is useful for those patients with poor ego strength, who are in an acute crisis. Those who are medically ill and/or cognitively limited, or unmotivated and are looking for immediate symptom relief are good candidates for supportive psychotherapy. (751)"
+        "answerText":  "Supportive psychotherapy",
+        "explanation":  "Supportive psychotherapy focuses on external rather than intrapsychic events and on how stressful environmental and interpersonal influences can damage the self. It is useful for those patients with poor ego strength, who are in an acute crisis. Those who are medically ill and/or cognitively limited, or unmotivated and are looking for immediate symptom relief are good candidates for supportive psychotherapy. (751)"
     },
     {
         "id":  "k-23.7",
         "chapter":  23,
         "chapterTitle":  "Psychotherapy",
         "qnum":  7,
-        "question":  "Group therapy would be contraindicated for a patient in which of the following scenarios? A. A new diagnosis of paranoid schizophrenia with active delusions B. A patient actively engaged in individual therapy, suffering from depression and suicidal thoughts C. Bipolar disorder with manic symptoms has been diagnosed, though the patient is stable on medications D. The patient has antisocial personality disorder and is with others in the group with the same diagnosis E. The patient is suffering from an acute grief reaction after the death of a spouse",
+        "question":  "Group therapy would be contraindicated for a patient in which of the following scenarios?",
         "choices":  [
-
+                        "A new diagnosis of paranoid schizophrenia with active delusions",
+                        "A patient actively engaged in individual therapy, suffering from depression and suicidal thoughts",
+                        "Bipolar disorder with manic symptoms has been diagnosed, though the patient is stable on medications",
+                        "The patient has antisocial personality disorder and is with others in the group with the same diagnosis",
+                        "The patient is suffering from an acute grief reaction after the death of a spouse"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "A",
-        "answerText":  null,
-        "explanation":  "A new diagnosis of paranoid schizophrenia with active delusions There are relatively few contraindications to participating in group therapy. A patient with active delusions, who incorporate the group into the delusions, and a patient who is threatening with frequent outbursts are some examples of patients who should be excluded from the group setting. Bipolar disorder, or mania, is not contraindication to group therapy if manic symptoms are controlled on medication. Those patients with depression and suicidal thoughts can benefit from group therapy. However, if any acute safety concerns are present, individual treatment should be conducted as well. Those with antisocial personality disorder might struggle in a group setting unless other patients with the same diagnosis are in the group, since these patients are thought to respond better to their peers than authority figures. (755, 756)"
+        "answerText":  "A new diagnosis of paranoid schizophrenia with active delusions",
+        "explanation":  "There are relatively few contraindications to participating in group therapy. A patient with active delusions, who incorporate the group into the delusions, and a patient who is threatening with frequent outbursts are some examples of patients who should be excluded from the group setting. Bipolar disorder, or mania, is not contraindication to group therapy if manic symptoms are controlled on medication. Those patients with depression and suicidal thoughts can benefit from group therapy. However, if any acute safety concerns are present, individual treatment should be conducted as well. Those with antisocial personality disorder might struggle in a group setting unless other patients with the same diagnosis are in the group, since these patients are thought to respond better to their peers than authority figures. (755, 756)"
     },
     {
         "id":  "k-23.8",
         "chapter":  23,
         "chapterTitle":  "Psychotherapy",
         "qnum":  8,
-        "question":  "A family has started therapy together for help in managing one of their children with attention- deficit/hyperactivity  disorder  (ADHD), oppositional defiant disorder (ODD), and worsening behavior problems. The patient is being bullied in school and the therapist externalizes the problem and helps the family to focus on the outside stressors and diagnoses. Each family member writes a therapeutic letter to another family member in hopes of resolving the conflict within the family and enhancing insight about the story that each member is going through. Which school of family therapy is most likely being employed? A. Cognitive behavioral B. Experiential-humanistic C. Integrative D. Narrative E. Psychodynamic",
+        "question":  "A family has started therapy together for help in managing one of their children with attention- deficit/hyperactivity  disorder  (ADHD), oppositional defiant disorder (ODD), and worsening behavior problems. The patient is being bullied in school and the therapist externalizes the problem and helps the family to focus on the outside stressors and diagnoses. Each family member writes a therapeutic letter to another family member in hopes of resolving the conflict within the family and enhancing insight about the story that each member is going through. Which school of family therapy is most likely being employed?",
         "choices":  [
-
+                        "Cognitive behavioral",
+                        "Experiential-humanistic",
+                        "Integrative",
+                        "Narrative",
+                        "Psychodynamic"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E"
                           ],
         "correctLetter":  "D",
-        "answerText":  null,
-        "explanation":  "Narrative Narrative family therapy involves resolution of a presenting problem through focusing on outcomes and externalizing the problem and helping the family members to create new meaning via \"restorying.\" Therapeutic letters are often written to one another as part of the therapeutic process. Cognitive behavioral family therapy focuses on communication and problem solving and change, along with acceptance and helping members to learn reattribution techniques. Experiential- humanistic therapy focuses on increasing differentiation and on detriangulation by using genograms and the therapist acts as a coach. Integrative family therapy combines cognitive behavioral and psychodynamic methods to improve communication and problem solving. Psychodynamic family therapy aims to improve insight and enhance empathy by analyzing transference, countertransference, and resistance and relies on interpretation and emphasizes the therapeutic alliance. (761)"
+        "answerText":  "Narrative",
+        "explanation":  "Narrative family therapy involves resolution of a presenting problem through focusing on outcomes and externalizing the problem and helping the family members to create new meaning via \"restorying.\" Therapeutic letters are often written to one another as part of the therapeutic process. Cognitive behavioral family therapy focuses on communication and problem solving and change, along with acceptance and helping members to learn reattribution techniques. Experiential- humanistic therapy focuses on increasing differentiation and on detriangulation by using genograms and the therapist acts as a coach. Integrative family therapy combines cognitive behavioral and psychodynamic methods to improve communication and problem solving. Psychodynamic family therapy aims to improve insight and enhance empathy by analyzing transference, countertransference, and resistance and relies on interpretation and emphasizes the therapeutic alliance. (761)"
     },
     {
         "id":  "k-23.9",
@@ -13072,12 +13194,18 @@ const QUESTIONS = ﻿[
         "chapter":  33,
         "chapterTitle":  "Contributions from the Neurosciences",
         "qnum":  18,
-        "question":  "A 62-year-old man with a 30-year history of drinking three to five beers a day would be expected to have what profile of N-methyl-D- aspartate (NMDA) and gamma-aminobutyric acid (GABA) receptor regulation? GABA            NMDA Upregulation A.  Upregulation    Downregulation Downregulation B.  Upregulation    Upregulation C.  Downregulation D.  Downregulation",
+        "question":  "A 62-year-old man with a 30-year history of drinking three to five beers a day would be expected to have what profile of N-methyl-D- aspartate (NMDA) and gamma-aminobutyric acid (GABA) receptor regulation? GABA            NMDA Upregulation",
         "choices":  [
-
+                        "Upregulation    Downregulation Downregulation",
+                        "Upregulation    Upregulation",
+                        "Downregulation",
+                        "Downregulation"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D"
                           ],
         "correctLetter":  "D",
         "answerText":  null,
@@ -13720,12 +13848,18 @@ const QUESTIONS = ﻿[
         "chapter":  34,
         "chapterTitle":  "Contributions from the Behavioral and Social Sciences",
         "qnum":  15,
-        "question":  "A 40-year-old female with amnesia is shown a picture of a woman in a bright red dress holding an umbrella on a rainy day. Also in the scene is a lake with ducks and a boat in the distance. The next day, she is asked to read out loud a set of words as quickly as possible. The set includes the words \"duck,\" \"umbrella,\" and \"dress.\" A patient without amnesia would read words represented in the picture more quickly than neutral words, and remember being shown the picture. How will this patient most likely perform? Quicker reading speed Remember picture A.  Yes  No B.  Yes  Yes C.  No   Yes D.  No   No",
+        "question":  "A 40-year-old female with amnesia is shown a picture of a woman in a bright red dress holding an umbrella on a rainy day. Also in the scene is a lake with ducks and a boat in the distance. The next day, she is asked to read out loud a set of words as quickly as possible. The set includes the words \"duck,\" \"umbrella,\" and \"dress.\" A patient without amnesia would read words represented in the picture more quickly than neutral words, and remember being shown the picture. How will this patient most likely perform? Quicker reading speed Remember picture",
         "choices":  [
-
+                        "Yes  No",
+                        "Yes  Yes",
+                        "No   Yes",
+                        "No   No"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D"
                           ],
         "correctLetter":  "A",
         "answerText":  null,
@@ -13784,12 +13918,24 @@ const QUESTIONS = ﻿[
         "chapter":  34,
         "chapterTitle":  "Contributions from the Behavioral and Social Sciences",
         "qnum":  18,
-        "question":  "In self-reports of memory difficulty, how do patients with depression report their performance with new learning capacity and immediate and remote recall? New learning Immediate Remote A. Impaired  Normal    Normal B. Normal    Impaired  Normal C. Normal    Normal    Impaired D. Impaired  Impaired  Normal E. Normal    Impaired  Impaired F. Impaired  Normal    Impaired G. Impaired  Impaired  Impaired",
+        "question":  "In self-reports of memory difficulty, how do patients with depression report their performance with new learning capacity and immediate and remote recall? New learning Immediate Remote",
         "choices":  [
-
+                        "Impaired  Normal    Normal",
+                        "Normal    Impaired  Normal",
+                        "Normal    Normal    Impaired",
+                        "Impaired  Impaired  Normal",
+                        "Normal    Impaired  Impaired",
+                        "Impaired  Normal    Impaired",
+                        "Impaired  Impaired  Impaired"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D",
+                              "E",
+                              "F",
+                              "G"
                           ],
         "correctLetter":  "G",
         "answerText":  null,
@@ -14016,12 +14162,18 @@ const QUESTIONS = ﻿[
         "chapter":  34,
         "chapterTitle":  "Contributions from the Behavioral and Social Sciences",
         "qnum":  28,
-        "question":  "Data from the National Comorbidity Study shows that, in comparison to Whites, African Americans have what relative risk for developing substance use, anxiety, and depressive disorders and what degree of persistence once a mental illness is developed? Relative risk  Persistence Lower A.  Lower          Higher Lower B.  Lower          Higher C.  Higher D.  Higher",
+        "question":  "Data from the National Comorbidity Study shows that, in comparison to Whites, African Americans have what relative risk for developing substance use, anxiety, and depressive disorders and what degree of persistence once a mental illness is developed? Relative risk  Persistence Lower",
         "choices":  [
-
+                        "Lower          Higher Lower",
+                        "Lower          Higher",
+                        "Higher",
+                        "Higher"
                     ],
         "choiceLetters":  [
-
+                              "A",
+                              "B",
+                              "C",
+                              "D"
                           ],
         "correctLetter":  "B",
         "answerText":  null,
