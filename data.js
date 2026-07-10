@@ -307,8 +307,8 @@ const QUESTIONS = ﻿[
                               "D",
                               "E"
                           ],
-        "correctLetter":  "C",
-        "answerText":  "Data that can be disclosed to the patient",
+        "correctLetter":  "B",
+        "answerText":  "Comments on countertransference and dreams",
         "explanation":  "Psychotherapy notes include details of transference, countertransference, fantasies, dreams, and personal information about name of contacts of the patient, etc., which would not be included in the actual progress notes in the medical record. Unlike progress notes, psychotherapy notes should be kept separate from the rest of the medical record and the data in them should not be disclosed to any person, including the patient. Detailed assessments and plans should be included in progress notes, not the psychotherapy note. (27)"
     },
     {
