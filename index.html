@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>K&amp;S Study Guide</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230f172a'/%3E%3Ctext x='50' y='64' font-family='Arial, sans-serif' font-size='42' font-weight='700' fill='%232563eb' text-anchor='middle'%3EK%26S%3C/text%3E%3C/svg%3E">
+<style>
+  :root {
+    --blue: #2563eb;
+    --blue-dark: #1d4ed8;
+    --blue-bg: #eff6ff;
+    --green: #16a34a;
+    --green-bg: #dcfce7;
+    --red: #dc2626;
+    --red-bg: #fee2e2;
+    --amber: #d97706;
+    --amber-bg: #fef3c7;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --navy: #0f172a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 10px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  header h1 {
+    font-size: 15px;
+    margin: 0 0 10px 0;
+    font-weight: 700;
+    color: #cbd5e1;
+    letter-spacing: 0.02em;
+  }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  select, button {
+    font: inherit;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    background: var(--card);
+    cursor: pointer;
+  }
+  select { min-width: 220px; }
+  .tab-group, .mode-toggle { display: flex; border-radius: 6px; overflow: hidden; }
+  .tab-group button, .mode-toggle button {
+    border: none;
+    border-radius: 0;
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tab-group button.active, .mode-toggle button.active {
+    background: var(--blue);
+    color: white;
+  }
+  .home-btn {
+    background: #1e293b;
+    color: #cbd5e1;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid #334155;
+  }
+  .home-btn:hover { background: #334155; color: white; }
+  .search-row { margin-top: 10px; }
+  #searchInput {
+    flex: 1;
+    min-width: 260px;
+    max-width: 480px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: white;
+  }
+  #searchInput::placeholder { color: #94a3b8; }
+  #clearSearchBtn { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+  #clearSearchBtn:hover { background: #334155; color: white; }
+  .score-badge {
+    margin-left: auto;
+    font-size: 13px;
+    color: #e2e8f0;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .qnav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 8px 20px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+  }
+  .qnav-pill {
+    position: relative;
+    flex-shrink: 0;
+    width: 30px;
+    height: 28px;
+    border-radius: 5px;
+    border: 1px solid #475569;
+    background: #334155;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+  }
+  .qnav-pill.current { border-color: white; box-shadow: 0 0 0 2px var(--blue); }
+  .qnav-pill.q-correct { background: var(--green); color: white; border-color: var(--green); }
+  .qnav-pill.q-incorrect { background: var(--red); color: white; border-color: var(--red); }
+  .qnav-pill.q-answered { background: #475569; color: white; }
+  .qnav-pill .flag-dot {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    border: 1px solid #1e293b;
+  }
+  main {
+    max-width: 780px;
+    margin: 20px auto;
+    padding: 0 16px 90px 16px;
+  }
+  .progress {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--blue-dark);
+    background: var(--blue-bg);
+    padding: 3px 10px;
+    border-radius: 999px;
+  }
+  .card-header-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    font-size: 12px;
+    padding: 5px 10px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+  }
+  .icon-btn.flagged { background: var(--amber-bg); border-color: var(--amber); color: var(--amber); font-weight: 700; }
+  .icon-btn.retry-btn { color: var(--blue-dark); border-color: var(--blue); font-weight: 700; }
+  .question-text {
+    font-size: 16px;
+    line-height: 1.55;
+    margin: 0 0 18px 0;
+    white-space: pre-wrap;
+  }
+  .choices { display: flex; flex-direction: column; gap: 8px; }
+  .choice {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    text-align: left;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: var(--card);
+    font-size: 14.5px;
+    line-height: 1.45;
+    color: var(--text);
+    width: 100%;
+  }
+  .choice:hover:not(.locked) { border-color: var(--blue); background: var(--blue-bg); }
+  .choice.clickable { cursor: pointer; }
+  .choice .letter {
+    font-weight: 700;
+    color: var(--blue-dark);
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--blue-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+  .choice.selected-test { background: var(--blue-bg); border-color: var(--blue); }
+  .choice.selected-test .letter { background: var(--blue); color: white; }
+  .choice.correct { background: var(--green-bg); border-color: var(--green); }
+  .choice.correct .letter { background: var(--green); border-color: var(--green); color: white; }
+  .choice.incorrect { background: var(--red-bg); border-color: var(--red); }
+  .choice.incorrect .letter { background: var(--red); border-color: var(--red); color: white; }
+  .actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+  }
+  .btn-primary {
+    background: var(--blue);
+    color: white;
+    border: none;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--blue-dark); }
+  .btn-secondary { background: var(--card); }
+  .btn-danger { background: var(--red); color: white; border: none; font-weight: 600; }
+  .answer-panel {
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--border);
+  }
+  .answer-panel .result {
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .result.correct-result { color: var(--green); }
+  .result.incorrect-result { color: var(--red); }
+  .explanation {
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .test-hint {
+    margin-top: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--navy);
+    padding: 10px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    z-index: 20;
+  }
+  .bottom-bar button {
+    background: #1e293b;
+    color: white;
+    border: 1px solid #334155;
+    min-width: 120px;
+  }
+  .bottom-bar button:hover { background: #334155; }
+  .bottom-bar .finish-btn { background: var(--blue); border-color: var(--blue); }
+  .bottom-bar .finish-btn:hover { background: var(--blue-dark); }
+  .empty-state, .summary-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+  }
+  .summary-panel h2 { margin-top: 0; }
+  .summary-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .summary-stat { min-width: 90px; }
+  .summary-stat .num { font-size: 28px; font-weight: 800; }
+  .summary-stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .summary-stat.correct .num { color: var(--green); }
+  .summary-stat.incorrect .num { color: var(--red); }
+  .summary-stat.omitted .num { color: var(--muted); }
+  .missed-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .missed-chip {
+    background: var(--red-bg);
+    color: var(--red);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .summary-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 18px;
+  }
+  footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 20px;
+  }
+  .reset-links { display: flex; gap: 14px; }
+  .reset-link {
+    background: none;
+    border: none;
+    color: var(--muted);
+    text-decoration: underline;
+    padding: 0;
+    font-size: 12px;
+  }
+  .reset-link-danger { color: var(--red); }
+  #homeBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #cbd5e1;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+  }
+  #homeBtn:hover { color: white; text-decoration: underline; }
+  #landingScreen {
+    max-width: 980px;
+    margin: 0 auto;
+    height: 100vh;
+    padding: 20px 20px 16px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+  .landing-hero { text-align: center; margin-bottom: 14px; flex-shrink: 0; }
+  .landing-hero h1 {
+    font-size: 22px;
+    margin: 0 0 4px 0;
+    color: var(--navy);
+  }
+  .landing-hero p {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0;
+  }
+  .landing-quick-links {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+  }
+  .landing-quick-card {
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    min-width: 150px;
+    line-height: 1.5;
+  }
+  .landing-quick-card:hover { background: #1e293b; }
+  .landing-quick-card.flag-card { background: var(--amber); }
+  .landing-quick-card.flag-card:hover { background: #b45309; }
+  .landing-quick-card.incorrect-card { background: var(--red); }
+  .landing-quick-card.incorrect-card:hover { background: #b91c1c; }
+  .landing-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin: 0 0 6px 4px;
+    flex-shrink: 0;
+  }
+  .landing-list-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 14px;
+  }
+  .landing-list {
+    columns: 2;
+    column-gap: 20px;
+  }
+  .landing-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 4px;
+    cursor: pointer;
+    break-inside: avoid;
+    font-size: 12.5px;
+  }
+  .landing-row:hover { background: var(--blue-bg); }
+  .landing-row .ch-num {
+    font-weight: 700;
+    color: var(--blue-dark);
+    flex-shrink: 0;
+    width: 18px;
+  }
+  .landing-row .ch-title {
+    flex: 1;
+    color: var(--text);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .landing-row .ch-meta {
+    color: var(--muted);
+    font-size: 11px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  .landing-row .ch-meta .stat-correct { color: var(--green); font-weight: 700; }
+  .landing-row .ch-meta .stat-incorrect { color: var(--red); font-weight: 700; }
+  .landing-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 12px;
+    flex-shrink: 0;
+  }
+  .landing-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  .landing-progress-bar {
+    flex: 1;
+    max-width: 260px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--border);
+    overflow: hidden;
+  }
+  .landing-progress-fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 999px;
+  }
+  .landing-progress-text {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  #studyScreen { display: none; }
+</style>
+</head>
+<body>
+<div id="landingScreen"></div>
+<div id="studyScreen">
+<header>
+  <h1>K&amp;S Study Guide</h1>
+  <div class="controls">
+    <button type="button" id="homeBtn" class="home-btn" title="Back to chapter selection">&#8962; Home</button>
+    <select id="chapterSelect"></select>
+    <div class="tab-group">
+      <button id="viewStudyBtn" data-view="study">Study</button>
+      <button id="viewFlaggedBtn" data-view="flagged">Flagged (<span id="flaggedCount">0</span>)</button>
+      <button id="viewIncorrectBtn" data-view="incorrect">Incorrect (<span id="incorrectCount">0</span>)</button>
+    </div>
+    <div class="mode-toggle">
+      <button id="modeQuizBtn" data-mode="quiz">Quiz</button>
+      <button id="modeTestBtn" data-mode="test">Test</button>
+      <button id="modeBrowseBtn" data-mode="browse">Browse</button>
+    </div>
+    <span class="score-badge" id="scoreBadge"></span>
+  </div>
+  <div class="controls search-row">
+    <input type="search" id="searchInput" placeholder="Search questions, choices, or explanations...">
+    <button type="button" id="clearSearchBtn" class="btn-secondary" style="display:none">&times; Clear</button>
+  </div>
+</header>
+<div class="qnav" id="qnav"></div>
+<main>
+  <div class="progress">
+    <span id="progressText"></span>
+    <span class="reset-links">
+      <button class="reset-link" id="resetSectionBtn" title="Clear answers, flags, and incorrect records for the questions currently shown">Reset this section</button>
+      <button class="reset-link reset-link-danger" id="resetAllBtn" title="Clear all quiz/test answers, flags, and incorrect records for the entire question bank">Reset entire QBank</button>
+    </span>
+  </div>
+  <div id="content"></div>
+</main>
+<div class="bottom-bar">
+  <button id="prevBtn">&larr; Previous</button>
+  <button id="finishTestBtn" class="finish-btn" style="display:none">Finish Test</button>
+  <button id="nextBtn">Next &rarr;</button>
+</div>
+<footer>
+  602 questions, answers, and explanations extracted directly from Kaplan &amp; Sadock's Study Guide and Self-Examination Review — for personal study use.
+</footer>
+</div>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
