@@ -87,6 +87,9 @@
     const targetId = String(revision.targetQuestionId || '');
     if (!targetId || !byId.has(targetId)) throw new Error('Revision targets missing original question: ' + targetId);
     if (revisionTargets.has(targetId)) throw new Error('Only one active revision overlay is allowed per original question: ' + targetId);
+    if (!revision.provenance || revision.provenance.originalBankMaterialPreserved !== true || revision.provenance.overwritesOriginalSource !== false) {
+      throw new Error('Revision ' + revision.revisionId + ' must preserve original material and set overwritesOriginalSource to false.');
+    }
     revisionTargets.add(targetId);
 
     const original = byId.get(targetId);
