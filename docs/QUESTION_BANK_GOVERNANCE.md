@@ -2,84 +2,125 @@
 
 ## Purpose
 
-The live question bank must remain recoverable and reviewable even when questions, answer choices, correct answers, or explanations are being revised. No Drive draft can directly alter the live site.
+Every live bank must remain recoverable and reviewable while questions, answer choices, correct answers, explanations, categories, tags, or learning objectives are revised. No Drive Draft, AI Request, AI Proposal, or Export can directly alter a live bank.
+
+The platform is for personal ABPN psychiatry study and enforces a 5,000-card total ceiling.
 
 ## Environments
 
 ### 1. GitHub `main` — live production
 
-- `data.js` on `main` is the question bank loaded by the public study site.
+- Each published bank loads reviewed source from `main`.
 - Changes reach `main` only after validation and review.
-- The visible Drive `Production` folder is a mirror and backup of this reviewed bank; it is not the runtime source.
+- Visible Drive Production folders are mirrors and backups, not runtime sources.
 
-### 2. GitHub `question-bank-staging` — proposed code changes
+### 2. Git engineering branches — proposed code and content
 
-- All requested question-bank edits should first be committed to this branch.
-- The branch must remain based on the latest `main` before work begins.
-- A diff and validation result should be reviewed before merging.
-- The live question bank must never be edited directly on `main` for ordinary content work.
+- Ordinary question edits use `question-bank-staging` or another documented non-production branch.
+- Structural changes use a dedicated engineering branch.
+- Branches must be based on current `main` before work begins.
+- A diff and validation result must be reviewed before merge.
+- Live bank content must not be edited directly on `main` for ordinary work.
 
-### 3. Google Drive `Drafts` — editable data workspace
+### 3. Drive `Banks/<bank-id>/Drafts` — editable bank workspace
 
-- `question-bank-draft.json` is the AI- and human-editable working copy.
+- `question-bank-draft.json` is the AI- and human-editable working copy for one bank.
 - Creating or refreshing a draft archives the prior draft first.
-- Draft validation records are stored in `Change Sets`.
-- A Drive draft never auto-publishes to GitHub or to the live site.
+- Draft validation records are stored in that bank's `Change Sets` folder.
+- A Drive Draft never auto-publishes.
 
-### 4. Google Drive `History` — append-only content recovery
+### 4. Drive `Banks/<bank-id>/History` — append-only content recovery
 
-- The prior Production package is archived before a changed production mirror is written.
+- The prior Production package is archived before a changed mirror is written.
 - Earlier drafts are archived before replacement.
 - The application exposes no History deletion control.
 
-### 5. Google Drive `Test History` — append-only performance evidence
+### 5. Drive `Banks/<bank-id>/Test History` — append-only performance evidence
 
-- Every completed test is archived as a separate JSON record after the vault is connected.
-- The completed-test index prevents duplicate archival of the same stable set ID.
-- Cumulative per-question metrics retain already-synchronized attempts even if an older test is later deleted from the dashboard or falls outside the browser's rolling 50-test list.
-- The application exposes no completed-test-history deletion control.
+- Every synchronized completed test is archived as a separate JSON record.
+- The completed-test index prevents duplicate archival of a stable set ID.
+- Cumulative metrics retain synchronized attempts even if an older test is later deleted from the dashboard or falls outside the browser's rolling list.
+- The application exposes no Test History deletion control.
+
+### 6. Drive `AI Workspace` — requests, proposals, and exports
+
+- Requests describe desired analysis or content work.
+- Proposals contain additions, revisions, or retirements against a known base bank hash.
+- Exports provide question content correlated with timing, categories, distractor selections, and performance.
+- Nothing in the AI Workspace publishes automatically.
 
 ## Stable identity
 
-Every question must keep a stable `id`. Editing text, answer choices, the correct answer, or an explanation must not change the ID. New questions receive new IDs. IDs must never be reused after a question is retired because progress, analytics, saved tests, cumulative performance, and completed-test history are keyed to them.
+Every bank has a permanent `bankId`. Every question has a permanent ID within that bank. The globally stable identity is:
+
+```text
+bankId::questionId
+```
+
+Editing content or metadata must not change that composite identity. New questions receive new IDs. Retired IDs must never be reused because progress, timing, analytics, saved tests, cumulative performance, completed-test history, drafts, and AI proposals are keyed to them.
 
 ## Required validation
 
-A draft or code change must pass all of the following before production:
+A draft or code change must pass all relevant checks before production:
 
-- Every question has a unique nonempty ID.
+- The bank ID is valid and unchanged.
+- Every question has a unique nonempty ID within its bank.
+- Composite identities are unique.
 - Chapter and question numbers are valid.
 - Question text is present.
 - At least two answer choices exist.
 - Choice letters and choices have equal lengths.
 - The correct answer letter exists among the choices.
+- Categories and tags use stable machine-readable IDs when introduced.
 - The full question source remains parseable.
-- Additions, changes, and removals are explicitly reported.
-- Any removal receives deliberate review because it can orphan historical analytics.
+- Additions, changes, and retirements are explicitly reported.
+- Any retirement receives deliberate review because it can orphan historical analytics.
+- The platform remains at or below 5,000 total registered cards.
+- Google Drive permissions remain limited to `drive.appdata` and `drive.file`.
 
 ## Standard change process
 
-1. Create or refresh the Drive draft from Production.
-2. Make requested changes only in the Drive draft and/or GitHub staging branch.
-3. Validate the draft and inspect the generated change summary.
-4. Apply the same reviewed changes to `question-bank-staging`.
-5. Run repository validation and review the Git diff.
-6. Merge to `main` only after approval.
-7. Open the live site, connect the Question Vault, and select **Sync production mirror**.
-8. Select **Sync performance** to archive any new completed tests and update cumulative per-question metrics.
-9. Refresh the AI-ready correlated export.
+1. Identify the target bank and current Production hash.
+2. Refresh that bank's AI context when performance analysis is needed.
+3. Record the requested work in an AI Request or directly in the conversation.
+4. Create or refresh the bank's Drive Draft.
+5. Prepare proposed changes in the Draft and/or a non-production Git branch.
+6. Validate the Draft and inspect additions, changes, retirements, and warnings.
+7. Review the Git diff and repository validation result.
+8. Merge to `main` only after approval.
+9. Open the live bank and verify Test and Tutor behavior.
+10. Connect the Question Platform and select **Sync active bank**.
+11. Select **Sync performance** to archive new tests and update timing/category metrics.
+12. Refresh AI context.
+
+## Adding a bank
+
+A new bank must receive:
+
+- A unique permanent bank ID
+- A dedicated question source
+- Bank metadata and bootstrap configuration
+- Separate browser storage namespace
+- Separate hidden Drive backup filenames
+- Separate visible Drive Production, Drafts, History, Test History, and Change Sets folders
+- A non-production import branch
+- Full validation and browser smoke testing
+
+Shared engine code must not be duplicated merely to add a bank.
 
 ## Recovery guarantees
 
-Question content and correlated performance are recoverable from multiple independent locations:
+Question content and correlated performance are recoverable from independent locations:
 
 - Git history on `main`
-- The `question-bank-staging` branch during active work
-- Drive Production mirror
-- Drive append-only question-bank History versions
-- Drive archived drafts
-- Drive append-only full completed-test files and their index
-- Drive cumulative per-question performance keyed by stable question ID
-- Local and hidden Drive progress backups for current user response data
+- Non-production branches during active work
+- Platform bank registry
+- Bank-specific Drive Production mirror
+- Bank-specific append-only History
+- Archived bank Drafts
+- Append-only full completed-test files and index
+- Cumulative per-question performance keyed by composite ID
+- AI context exports
+- Local and hidden Drive progress backups
 
-The vault is a safety and collaboration layer. It does not replace Git review, browser testing, or the repository validator.
+The platform is a safety and collaboration layer. It does not replace Git review, automated validation, or browser testing.
