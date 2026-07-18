@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "bankId": "ks-psychiatry-core",
+  "title": "K&S Psychiatry Core",
+  "purpose": "Personal ABPN psychiatry board preparation",
+  "originalSource": {
+    "file": "data.js",
+    "immutable": true,
+    "provenanceClass": "original-bank"
+  },
+  "collections": [
+    {
+      "id": "ai-created",
+      "title": "AI-Created Personal Supplement",
+      "path": "ai-created",
+      "provenanceClass": "ai-created",
+      "runtimeSelectable": true,
+      "productionAutoPublish": false
+    },
+    {
+      "id": "user-created",
+      "title": "User-Created Personal Supplement",
+      "path": "user-created",
+      "provenanceClass": "user-created",
+      "runtimeSelectable": true,
+      "productionAutoPublish": false
+    },
+    {
+      "id": "ai-revisions",
+      "title": "AI Revision Overlays for Original Material",
+      "path": "ai-revisions",
+      "provenanceClass": "ai-revised-original",
+      "runtimeSelectable": true,
+      "productionAutoPublish": false,
+      "overwritesOriginalSource": false
+    }
+  ],
+  "generatedBundle": "generated/ks-psychiatry-core-content.js",
+  "rules": {
+    "originalSourceMayBeModified": false,
+    "stableQuestionIdsRequired": true,
+    "newIdsMayNeverBeReused": true,
+    "revisionsMustDeclareChangedFields": true,
+    "revisionsMustPreserveOriginalSnapshot": true,
+    "reviewRequiredBeforeActiveGitHub": true
+  }
+}
