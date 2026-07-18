@@ -15,6 +15,7 @@ This repository is a static, browser-first study application that must remain de
 - `boards-nav-status.js` — answered/correct/incorrect navigator state only.
 - `boards-analytics.js` — completed-test records, metrics, timing, review, and saved-test deletion.
 - `boards-maintenance.js` — selective reset, full reset, local recovery backups, restore, and export.
+- `boards-safety.js` — cross-module destructive-action guardrails, including retention of at least one local recovery point and cloud milestones for legacy actions.
 - `boards-drive-backup.js` — Google Drive app-data synchronization and cloud recovery history.
 - `boards-init.js` — startup validation and explicit application initialization.
 
@@ -26,11 +27,21 @@ Drive and local recovery snapshots use a versioned envelope containing `projectI
 
 Only keys listed in `BoardsConfig.storage.backupKeys` are eligible for backup or restore. This prevents a future project on the same domain from being swept into this project’s backup.
 
+At least one local recovery point is retained after destructive operations. Cloud current-state and historical files have separate purposes: the current file is efficiently overwritten, while milestone snapshots are retained on a rolling basis.
+
 ## Expansion rules
 
 A future project should have its own `projectId`, storage prefix, backup manifest, Drive filenames, and OAuth client only if it needs a different authorization boundary. Shared utilities may be extracted, but project data must remain namespaced.
 
 New features should communicate through `BoardsStore` events and `ksboards:milestone` rather than adding periodic polling. A polling loop is acceptable only for inherently time-based behavior such as the exam timer or per-question elapsed time.
+
+Each module should have one primary responsibility. Cross-module safety requirements belong in an explicit guardrail module rather than hidden click interception or duplicated storage logic.
+
+## Validation and release
+
+The repository validation script checks JavaScript syntax, local asset references, module order, question-bank integrity, project isolation, secret-like material, and Google Drive scope restrictions. GitHub Actions runs this validation on pushes to `main` and on pull requests.
+
+Large future changes should be developed on a branch, reviewed through a pull request, validated automatically, and smoke-tested in a browser before merge.
 
 ## Compatibility
 
