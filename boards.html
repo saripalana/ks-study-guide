@@ -4,16 +4,127 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive">
-  <title>Psychiatry Board Practice Exam</title>
-  <style>
-    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#eef1f5; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif; }
-    #loading { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; color:#1e293b; font-weight:700; }
-    #examFrame { display:none; width:100%; height:100%; border:0; }
-  </style>
+  <title>Psychiatry Board Practice</title>
+  <link rel="stylesheet" href="./boards-shell.css?v=2">
 </head>
 <body>
-  <div id="loading">Opening your practice exam…</div>
-  <iframe id="examFrame" src="./index.html" title="Psychiatry Board Practice Exam"></iframe>
-  <script src="./boards.js?v=1"></script>
+  <div id="dashboardScreen" class="dashboard-screen">
+    <header class="dashboard-topbar">
+      <div>
+        <div class="dashboard-eyebrow">K&amp;S QUESTION BANK</div>
+        <h1>Psychiatry Board Practice</h1>
+      </div>
+      <div class="dashboard-top-actions">
+        <a href="./index.html" class="text-link">Original study guide</a>
+      </div>
+    </header>
+
+    <main class="dashboard-main">
+      <section class="welcome-row">
+        <div>
+          <h2>Practice dashboard</h2>
+          <p>Create a new randomized set, resume your current set, or review your question-bank status.</p>
+        </div>
+      </section>
+
+      <section id="summaryStats" class="summary-stats" aria-label="Question bank statistics"></section>
+
+      <section class="dashboard-grid">
+        <div class="dashboard-column">
+          <article id="resumeCard" class="dashboard-card resume-card"></article>
+
+          <article class="dashboard-card">
+            <div class="card-heading-row">
+              <div>
+                <div class="card-kicker">CREATE</div>
+                <h3>New practice set</h3>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <label class="field-label" for="questionCount">Number of questions</label>
+              <div class="number-row">
+                <input id="questionCount" type="number" min="1" max="602" value="40">
+                <span id="questionRangeText">of 602 available</span>
+              </div>
+            </div>
+
+            <div class="form-section">
+              <div class="field-label">Mode</div>
+              <div class="option-grid" id="modeOptions">
+                <button type="button" class="option-card selected" data-mode="test">
+                  <span class="option-title">Test mode</span>
+                  <span class="option-copy">Answers and explanations stay hidden until you submit.</span>
+                </button>
+                <button type="button" class="option-card" data-mode="quiz">
+                  <span class="option-title">Tutor mode</span>
+                  <span class="option-copy">See the answer and explanation immediately.</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-section" id="timingSection">
+              <div class="field-label">Timing</div>
+              <div class="segmented-control" id="timingOptions">
+                <button type="button" class="segment selected" data-timing="timed">Timed</button>
+                <button type="button" class="segment" data-timing="untimed">Untimed</button>
+              </div>
+              <div id="timerFields" class="timer-fields">
+                <label>Hours<input id="timerHours" type="number" min="0" max="99" value="0"></label>
+                <label>Minutes<input id="timerMinutes" type="number" min="0" max="59" value="47"></label>
+                <label>Seconds<input id="timerSeconds" type="number" min="0" max="59" value="4"></label>
+                <button type="button" id="boardPaceBtn" class="secondary-button">Use board pace</button>
+              </div>
+              <p class="field-help">The countdown is displayed continuously as hours:minutes:seconds.</p>
+            </div>
+
+            <button type="button" id="startNewSetBtn" class="primary-button full-width">Start randomized set</button>
+          </article>
+
+          <article class="dashboard-card">
+            <div class="card-heading-row">
+              <div>
+                <div class="card-kicker">REVIEW</div>
+                <h3>Focused practice</h3>
+              </div>
+            </div>
+            <div class="review-actions">
+              <button type="button" id="reviewIncorrectBtn" class="review-button">
+                <span>Incorrect questions</span><strong id="reviewIncorrectCount">0</strong>
+              </button>
+              <button type="button" id="reviewFlaggedBtn" class="review-button">
+                <span>Flagged questions</span><strong id="reviewFlaggedCount">0</strong>
+              </button>
+            </div>
+          </article>
+        </div>
+
+        <div class="dashboard-column dashboard-column-wide">
+          <article class="dashboard-card bank-card">
+            <div class="card-heading-row bank-heading">
+              <div>
+                <div class="card-kicker">QUESTION BANK</div>
+                <h3>All question statuses</h3>
+                <p>Every question is shown below. Colors indicate your latest recorded result; the gold corner marks a flag.</p>
+              </div>
+            </div>
+            <div id="bankLegend" class="bank-legend"></div>
+            <div id="bankFilters" class="bank-filters"></div>
+            <div id="bankGrid" class="bank-grid" aria-label="All question statuses"></div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="dashboard-footer">Unofficial personal study tool. Not produced or endorsed by ABPN or UWorld.</footer>
+  </div>
+
+  <div id="examScreen" class="exam-screen" hidden>
+    <div id="examLoading" class="exam-loading">Opening your practice set…</div>
+    <iframe id="examFrame" title="Psychiatry Board Practice Exam"></iframe>
+  </div>
+
+  <script src="./data.js?v=3"></script>
+  <script src="./boards-v2.js?v=2"></script>
 </body>
 </html>
