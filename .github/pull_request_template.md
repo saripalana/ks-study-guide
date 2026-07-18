@@ -2,31 +2,42 @@
 
 Describe what changed and why.
 
-## Target bank
+## Target bank and collection
 
 - Bank ID:
+- Collection: `original-bank` / `ai-created` / `user-created` / `ai-revisions` / new bank
 - Base production hash, when applicable:
 - Existing bank or new bank:
 
 ## Change type
 
-- [ ] Question text, answer choice, correct answer, or explanation
-- [ ] New question(s)
+- [ ] Original question text, choices, correct answer, or explanation via reversible overlay
+- [ ] New AI-created supplemental card(s)
+- [ ] New user-created supplemental card(s)
 - [ ] Question retirement/removal
 - [ ] New question bank or bank metadata
 - [ ] Categories, tags, learning objectives, or difficulty metadata
-- [ ] Practice interface, timing, analytics, or study intelligence
+- [ ] Practice interface, exact timing, analytics, or study intelligence
 - [ ] Storage, backup, Drive, AI workspace, or security
 - [ ] Documentation only
 
-## Question-bank safety checklist
+## Content provenance checklist
 
-Complete this section whenever a question source, bank registry, schema, or Question Platform module changes.
+- [ ] `data.js` remains the immutable imported source and was not used to disguise AI text as original material.
+- [ ] Each supplemental card is stored as its own JSON file in the correct collection folder.
+- [ ] AI-created cards declare `originalBankMaterial: false` and display as personal supplements.
+- [ ] Revisions to original cards use an `ai-revisions` overlay rather than overwriting the original source.
+- [ ] Every revision declares its target question, base content hash, changed fields, rationale, and provenance.
+- [ ] The original snapshot remains recoverable and visible for AI-revised cards.
+- [ ] Stable question IDs were preserved and new IDs have never been used before.
+- [ ] `node scripts/build-content.mjs` was run and the generated bundle is current.
+- [ ] Source filters correctly separate original unchanged, AI-revised original, AI-created, and user-created cards.
+
+## Question-bank safety checklist
 
 - [ ] Work was prepared on `question-bank-staging` or another non-production branch.
 - [ ] The correct stable bank ID was used.
-- [ ] Existing question IDs and `bankId::questionId` composite IDs were preserved.
-- [ ] New questions use new IDs that have never been used in that bank.
+- [ ] Existing `bankId::questionId` composite IDs were preserved.
 - [ ] Any retirement/removal is intentional and its effect on saved tests and analytics was reviewed.
 - [ ] Choices and choice letters have equal lengths.
 - [ ] Every correct answer letter exists among the available choices.
@@ -51,7 +62,7 @@ Complete this section whenever a question source, bank registry, schema, or Ques
 - [ ] The active-bank dashboard loads after a hard refresh.
 - [ ] A short Test-mode set was completed and reviewed.
 - [ ] A short Tutor-mode set was completed and reviewed.
-- [ ] Question timing and timing-band data were checked when affected.
+- [ ] Per-card active milliseconds, first-response latency, answer changes, and review display were checked when timing changed.
 - [ ] Saved-test deletion was checked when affected.
 - [ ] Google Drive current backup was checked when affected.
 - [ ] Platform Registry, bank Production, Drafts, History, Test History, Change Sets, and AI Workspace were checked when affected.
@@ -59,4 +70,4 @@ Complete this section whenever a question source, bank registry, schema, or Ques
 
 ## Review notes
 
-List known limitations, migration considerations, capacity effects, or manual follow-up steps.
+List known limitations, migration considerations, capacity effects, provenance decisions, or manual follow-up steps.
