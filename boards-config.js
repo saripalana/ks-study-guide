@@ -15,7 +15,7 @@
   window.BoardsConfig = Object.freeze({
     projectId: 'psychiatry-board-practice',
     appName: 'Psychiatry Board Practice',
-    build: '2026.07.18.2',
+    build: '2026.07.18.3',
     schemaVersion: 2,
     storage: Object.freeze({
       keys: storageKeys,
@@ -38,6 +38,28 @@
       maxHistoryBytes: 4 * 1024 * 1024,
       autoSyncMinMs: 30000,
       retryLimit: 3
+    }),
+    questionVault: Object.freeze({
+      schemaVersion: 1,
+      datasetId: 'psychiatry-board-question-bank',
+      repository: 'saripalana/ks-study-guide',
+      stagingBranch: 'question-bank-staging',
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      rootFolder: 'Psychiatry Board Question Vault',
+      folders: Object.freeze({
+        production: 'Production',
+        drafts: 'Drafts',
+        history: 'History',
+        changes: 'Change Sets'
+      }),
+      files: Object.freeze({
+        manifest: 'vault-manifest.json',
+        master: 'question-bank-master.json',
+        performance: 'question-performance.json',
+        correlated: 'question-bank-correlated-latest.json',
+        draft: 'question-bank-draft.json'
+      }),
+      performanceSyncMinMs: 60000
     }),
     limits: Object.freeze({
       savedTests: 50,
