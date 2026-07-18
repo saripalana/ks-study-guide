@@ -44,6 +44,10 @@
     return new Date().toISOString().replace(/[:.]/g, '-');
   }
 
+  function safeFilePart(value) {
+    return String(value || 'unknown').replace(/[^A-Za-z0-9._-]+/g, '-').slice(0, 100);
+  }
+
   function setStatus(message, tone) {
     const element = document.getElementById('questionVaultStatus');
     if (!element) return;
@@ -87,7 +91,7 @@
     const summary = document.getElementById('questionVaultSummary');
     if (summary) {
       summary.textContent = rootFolder
-        ? 'Vault ready · Production, Drafts, History, and Change Sets are separated.'
+        ? 'Vault ready · Production, Drafts, History, Test History, and Change Sets are separated.'
         : 'Not initialized yet.';
     }
   }
@@ -163,7 +167,8 @@
       safety: {
         driveProductionIsMirror: true,
         draftAutoPublishes: false,
-        historyIsAppendOnly: true
+        historyIsAppendOnly: true,
+        completedTestHistoryIsAppendOnly: true
       }
     }, existing.payload || {}, patch || {}, { updatedAt: Date.now() });
     await drive.upsertJson(Vault.files.manifest, folders.production, manifest, 'manifest');
@@ -215,19 +220,84 @@
     }
   }
 
+  async function archiveCompletedTests() {
+    const localTests = Store.read(Config.storage.keys.tests, []);
+    const indexResult = await drive.readNamed(Vault.files.testIndex, folders.production);
+    const hadIndex = !!(indexResult.payload && Array.isArray(indexResult.payload.tests));
+    const index = hadIndex
+      ? indexResult.payload
+      : {
+          schemaVersion: Vault.schemaVersion,
+          projectId: Config.projectId,
+          datasetId: Vault.datasetId,
+          createdAt: Date.now(),
+          tests: []
+        };
+    const known = new Set(index.tests.map(function (item) { return String(item.setId || ''); }));
+    let added = 0;
+
+    if (Array.isArray(localTests)) {
+      for (const test of localTests) {
+        const setId = String(test && test.setId || '');
+        if (!setId || known.has(setId)) continue;
+        const completedAt = Number(test.completedAt) || Date.now();
+        const fileName = 'test-' + new Date(completedAt).toISOString().replace(/[:.]/g, '-') + '-' + safeFilePart(setId) + '.json';
+        const packageValue = {
+          schemaVersion: Vault.schemaVersion,
+          projectId: Config.projectId,
+          datasetId: Vault.datasetId,
+          environment: 'completed-test-history',
+          archivedAt: Date.now(),
+          test: test
+        };
+        const file = await drive.upsertJson(fileName, folders.tests, packageValue, 'completed-test');
+        index.tests.push({
+          setId: setId,
+          completedAt: completedAt,
+          archivedAt: Date.now(),
+          fileId: file.id,
+          fileName: fileName,
+          mode: test.mode || '',
+          total: Number(test.total) || 0,
+          scorePct: Number(test.scorePct) || 0,
+          bankBuild: Config.build
+        });
+        known.add(setId);
+        added += 1;
+      }
+    }
+
+    index.tests.sort(function (a, b) { return (b.completedAt || 0) - (a.completedAt || 0); });
+    index.testCount = index.tests.length;
+    if (added > 0 || !hadIndex) {
+      index.updatedAt = Date.now();
+      await drive.upsertJson(Vault.files.testIndex, folders.production, index, 'completed-test-index');
+    }
+    return { index: index, added: added };
+  }
+
   async function syncPerformance(showMessage) {
     if (!drive.isConnected() || busy) return;
-    const master = Model.buildMasterPackage();
-    const performance = Model.buildPerformancePackage(master);
-    if (!showMessage && performance.performanceHash === lastPerformanceHash) return;
     busy = true;
     updateUi();
-    if (showMessage) setStatus('Synchronizing compact per-question performance…', 'neutral');
+    if (showMessage) setStatus('Synchronizing compact per-question performance and completed-test history…', 'neutral');
     try {
+      const master = Model.buildMasterPackage();
+      const priorResult = await drive.readNamed(Vault.files.performance, folders.production);
+      const performance = Model.buildPerformancePackage(master, priorResult.payload);
+      const archive = await archiveCompletedTests();
+      if (!showMessage && performance.performanceHash === lastPerformanceHash && archive.added === 0) return;
       await drive.upsertJson(Vault.files.performance, folders.production, performance, 'performance');
-      await writeManifest({ performanceHash: performance.performanceHash, lastPerformanceSyncAt: Date.now() });
+      await writeManifest({
+        performanceHash: performance.performanceHash,
+        historicalTestCount: performance.historicalTestCount,
+        archivedTestCount: archive.index.testCount,
+        lastPerformanceSyncAt: Date.now()
+      });
       lastPerformanceHash = performance.performanceHash;
-      if (showMessage) setStatus('Per-question performance synchronized by stable question ID.', 'good');
+      if (showMessage) {
+        setStatus('Performance synchronized. ' + archive.index.testCount + ' completed tests are preserved in append-only Test History.', 'good');
+      }
     } finally {
       busy = false;
       updateUi();
@@ -242,7 +312,8 @@
     try {
       const masterResult = await drive.readNamed(Vault.files.master, folders.production);
       const master = masterResult.payload || Model.buildMasterPackage();
-      const performance = Model.buildPerformancePackage(master);
+      const priorPerformance = await drive.readNamed(Vault.files.performance, folders.production);
+      const performance = Model.buildPerformancePackage(master, priorPerformance.payload);
       const correlated = Model.buildCorrelatedPackage(master, performance);
       await drive.upsertJson(Vault.files.correlated, folders.production, correlated, 'ai-ready-correlated');
       await writeManifest({ correlatedHash: correlated.exportHash, lastCorrelatedExportAt: Date.now() });
@@ -342,6 +413,7 @@
       folders.production = await drive.ensureFolder(Vault.folders.production, rootFolder.id, 'production');
       folders.drafts = await drive.ensureFolder(Vault.folders.drafts, rootFolder.id, 'drafts');
       folders.history = await drive.ensureFolder(Vault.folders.history, rootFolder.id, 'history');
+      folders.tests = await drive.ensureFolder(Vault.folders.tests, rootFolder.id, 'test-history');
       folders.changes = await drive.ensureFolder(Vault.folders.changes, rootFolder.id, 'changes');
     } finally {
       busy = false;
