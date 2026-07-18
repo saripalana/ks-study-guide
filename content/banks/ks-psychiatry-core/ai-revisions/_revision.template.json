@@ -1,0 +1,26 @@
+{
+  "template": true,
+  "schemaVersion": 1,
+  "bankId": "ks-psychiatry-core",
+  "collectionId": "ai-revisions",
+  "revisionId": "revision-YYYYMMDD-question-id-001",
+  "targetQuestionId": "existing-stable-question-id",
+  "baseContentHash": "required-original-content-hash",
+  "baseContentVersion": 1,
+  "status": "draft",
+  "changedFields": ["explanation"],
+  "changes": {
+    "explanation": "Reviewed improved explanation."
+  },
+  "rationale": "Explain why this revision improves the card.",
+  "provenance": {
+    "class": "ai-revised-original",
+    "creator": "OpenAI ChatGPT",
+    "requestedBy": "saripalana",
+    "requestId": "",
+    "createdAt": null,
+    "reviewStatus": "draft",
+    "originalBankMaterialPreserved": true,
+    "overwritesOriginalSource": false
+  }
+}
