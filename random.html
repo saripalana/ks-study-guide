@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <title>Randomized K&amp;S Study Guide</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: #f8fafc;
+    }
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #1e293b;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    #studyFrame {
+      display: none;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Opening the questions in random order…</div>
+  <iframe id="studyFrame" src="./index.html" title="Randomized K&S Study Guide"></iframe>
+
+  <script>
+    const frame = document.getElementById('studyFrame');
+    const loading = document.getElementById('loading');
+
+    frame.addEventListener('load', () => {
+      try {
+        const doc = frame.contentDocument;
+        const injectedScript = doc.createElement('script');
+
+        injectedScript.textContent = `
+          (function () {
+            function shuffleAllQuestions() {
+              for (let i = QUESTIONS.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [QUESTIONS[i], QUESTIONS[j]] = [QUESTIONS[j], QUESTIONS[i]];
+              }
+
+              const chapterSelect = document.getElementById('chapterSelect');
+              if (chapterSelect) {
+                chapterSelect.value = 'all';
+                chapterSelect.dispatchEvent(new Event('change'));
+              }
+            }
+
+            shuffleAllQuestions();
+
+            const allQuestionsButton = document.getElementById('landingAllBtn');
+            if (allQuestionsButton) allQuestionsButton.click();
+
+            const controls = document.querySelector('header .controls');
+            if (controls && !document.getElementById('reshuffleBtn')) {
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.id = 'reshuffleBtn';
+              button.textContent = '🔀 Shuffle Again';
+              button.title = 'Put all 602 questions into a new random order';
+              button.style.background = '#334155';
+              button.style.color = 'white';
+              button.style.border = '1px solid #475569';
+              button.style.fontSize = '13px';
+              button.style.fontWeight = '700';
+
+              button.addEventListener('click', () => {
+                shuffleAllQuestions();
+              });
+
+              const scoreBadge = document.getElementById('scoreBadge');
+              controls.insertBefore(button, scoreBadge || null);
+            }
+          })();
+        `;
+
+        doc.body.appendChild(injectedScript);
+        loading.style.display = 'none';
+        frame.style.display = 'block';
+      } catch (error) {
+        loading.textContent = 'The randomized study guide could not be opened. Please refresh the page.';
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
