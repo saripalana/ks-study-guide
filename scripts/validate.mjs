@@ -18,7 +18,8 @@ const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
   'boards-dashboard.js', 'boards-exam-v2.js', 'boards-analytics.js', 'boards-builder.js',
   'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
-  'boards-drive-backup.js', 'boards-init.js'
+  'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-drive-backup.js',
+  'boards-question-vault.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -51,16 +52,20 @@ try {
   const questions = sandbox.__QUESTIONS;
   if (!Array.isArray(questions) || !questions.length) fail('data.js did not produce a non-empty QUESTIONS array.');
   const ids = new Set();
+  const chapterNumbers = new Set();
   questions.forEach((question, index) => {
     if (!question || typeof question.id !== 'string' || !question.id) fail(`Question ${index + 1} has no valid id.`);
     else if (ids.has(question.id)) fail(`Duplicate question id: ${question.id}`);
     else ids.add(question.id);
+    const chapterKey = `${question.chapter}|${question.qnum}`;
+    if (chapterNumbers.has(chapterKey)) fail(`Duplicate chapter/question number: ${question.chapter}.${question.qnum}`);
+    chapterNumbers.add(chapterKey);
     if (!Array.isArray(question.choices) || !Array.isArray(question.choiceLetters) || question.choices.length !== question.choiceLetters.length) {
       fail(`Question ${question?.id || index + 1} has mismatched choices and letters.`);
     }
     if (!question.choiceLetters?.includes(question.correctLetter)) fail(`Question ${question?.id || index + 1} has an invalid correct letter.`);
   });
-  console.log(`Validated ${questions.length} questions with unique IDs.`);
+  console.log(`Validated ${questions.length} questions with unique stable IDs.`);
 } catch (error) {
   fail(`Question-bank validation failed: ${error.message}`);
 }
@@ -77,21 +82,41 @@ for (const file of publicFiles) {
   for (const pattern of secretPatterns) if (pattern.test(content)) fail(`Possible secret material in ${file}: ${pattern}`);
 }
 
-const driveCode = read('boards-drive-backup.js') + read('boards-config.js');
-const forbiddenScopes = [
-  'https://www.googleapis.com/auth/drive"',
-  'https://www.googleapis.com/auth/drive.readonly',
+const driveCode = [
+  read('boards-drive-backup.js'), read('boards-visible-drive-client.js'), read('boards-question-vault.js'), read('boards-config.js')
+].join('\n');
+const scopeMatches = new Set(driveCode.match(/https:\/\/www\.googleapis\.com\/auth\/drive(?:\.[A-Za-z0-9._-]+)?/g) || []);
+const allowedScopes = new Set([
+  'https://www.googleapis.com/auth/drive.appdata',
   'https://www.googleapis.com/auth/drive.file'
-];
-for (const scope of forbiddenScopes) if (driveCode.includes(scope)) fail(`Forbidden broad Drive scope found: ${scope}`);
-if (!driveCode.includes('https://www.googleapis.com/auth/drive.appdata')) fail('Required drive.appdata scope is missing.');
+]);
+for (const scope of scopeMatches) if (!allowedScopes.has(scope)) fail(`Forbidden broad Drive scope found: ${scope}`);
+for (const scope of allowedScopes) if (!scopeMatches.has(scope)) fail(`Required limited Drive scope is missing: ${scope}`);
 
 const configCode = read('boards-config.js');
 const projectIdMatch = configCode.match(/projectId:\s*'([^']+)'/);
 if (!projectIdMatch || !projectIdMatch[1]) fail('A stable projectId is required in boards-config.js.');
-for (const registeredModule of ['boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js', 'boards-drive-backup.js']) {
+if (!configCode.includes("stagingBranch: 'question-bank-staging'")) fail('Question-bank staging branch configuration is missing.');
+if (!configCode.includes("datasetId: 'psychiatry-board-question-bank'")) fail('Question-bank dataset identity is missing.');
+
+for (const registeredModule of [
+  'boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js',
+  'boards-drive-backup.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-question-vault.js'
+]) {
   const content = read(registeredModule);
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
+}
+
+const schemaPath = path.join(root, 'schemas/question-bank.schema.json');
+if (!fs.existsSync(schemaPath)) fail('Question-bank JSON schema is missing.');
+else {
+  try {
+    const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+    if (schema?.properties?.projectId?.const !== 'psychiatry-board-practice') fail('Question-bank schema projectId does not match the app.');
+    if (schema?.properties?.datasetId?.const !== 'psychiatry-board-question-bank') fail('Question-bank schema datasetId does not match the app.');
+  } catch (error) {
+    fail(`Question-bank schema is invalid JSON: ${error.message}`);
+  }
 }
 
 if (failures.length) {
@@ -99,4 +124,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Validated ${localAssets.length} local HTML assets and ${javascriptFiles.length} JavaScript files.`);
-console.log('Security and architecture checks passed.');
+console.log('Security, question governance, and architecture checks passed.');
