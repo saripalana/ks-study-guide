@@ -163,6 +163,21 @@
     };
   }
 
+  function applyBankIdentity() {
+    const eyebrow = document.getElementById('activeBankEyebrow');
+    const heading = document.getElementById('activeBankHeading');
+    const description = document.getElementById('activeBankDescription');
+    if (eyebrow) eyebrow.textContent = activeBank.shortTitle.toUpperCase() + ' QUESTION BANK';
+    if (heading) heading.textContent = activeBank.title;
+    if (description) {
+      description.textContent = activeBank.description + ' ' + activeQuestions.length + ' cards are loaded in this bank.';
+    }
+    document.title = activeBank.title + ' · Psychiatry Board Practice';
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyBankIdentity);
+  else applyBankIdentity();
+
   window.BoardsBankRegistry = Object.freeze({
     activeBank: activeBank,
     activeQuestions: function () { return activeQuestions.slice(); },
@@ -173,6 +188,7 @@
     categoryCatalog: categoryCatalog,
     registryEntry: registryEntry,
     platformRegistry: platformRegistry,
+    applyBankIdentity: applyBankIdentity,
     capacity: Object.freeze({
       currentCards: activeQuestions.length,
       expectedTotalCards: Config.platform.expectedTotalCards,
