@@ -17,9 +17,9 @@ This repository is a static, browser-first study application that must remain de
 - `boards-maintenance.js` — selective reset, full reset, local recovery backups, restore, and export.
 - `boards-safety.js` — cross-module destructive-action guardrails, including retention of at least one local recovery point and cloud milestones for legacy actions.
 - `boards-drive-backup.js` — hidden Google Drive app-data synchronization and cloud recovery history.
-- `boards-question-bank-model.js` — canonical question serialization, stable hashing, correlated performance, package validation, and question-bank diffs.
+- `boards-question-bank-model.js` — canonical question serialization, stable hashing, cumulative performance, package validation, and question-bank diffs.
 - `boards-visible-drive-client.js` — limited `drive.file` OAuth and visible Drive file/folder operations for app-created vault content.
-- `boards-question-vault.js` — visible Drive Production/Draft/History workflow and AI-ready correlated exports.
+- `boards-question-vault.js` — visible Drive Production/Draft/History workflow, append-only completed-test archival, cumulative per-question metrics, and AI-ready correlated exports.
 - `boards-init.js` — startup validation and explicit application initialization.
 
 ## Storage contract
@@ -30,16 +30,18 @@ Drive and local recovery snapshots use a versioned envelope containing `projectI
 
 Only keys listed in `BoardsConfig.storage.backupKeys` are eligible for progress backup or restore. This prevents a future project on the same domain from being swept into this project’s backup.
 
-At least one local recovery point is retained after destructive operations. Cloud current-state and historical files have separate purposes: the current file is efficiently overwritten, while milestone snapshots are retained on a rolling basis.
+At least one local recovery point is retained after destructive operations. Hidden Drive current-state and historical files have separate purposes: the current file is efficiently overwritten, while milestone snapshots are retained on a rolling basis.
 
-## Question content governance
+## Question content and performance governance
 
 - GitHub `main` remains the live runtime source for question content.
 - GitHub `question-bank-staging` is the required environment for proposed question, answer, and explanation changes.
 - The visible Drive `Production` folder mirrors reviewed `main`; it is not loaded by the live app.
 - Drive `Drafts` is an editable data workspace only and never auto-publishes.
-- Drive `History` is append-only from the app’s perspective.
-- Stable question IDs are the contract joining content, progress, saved tests, and analytics.
+- Drive `History` preserves prior Production and Draft packages before replacement.
+- Drive `Test History` preserves one full file per completed test and an index keyed by stable set ID.
+- Cumulative per-question performance stores processed test IDs so dashboard deletion or local history limits cannot subtract an already-preserved attempt.
+- Stable question IDs are the contract joining content, progress, saved tests, cumulative analytics, and completed-test archives.
 - The AI-ready correlated export is deliberately refreshed rather than uploaded after every answer.
 
 ## Expansion rules
@@ -52,9 +54,9 @@ Each module should have one primary responsibility. Cross-module safety requirem
 
 ## Validation and release
 
-The repository validation script checks JavaScript syntax, local asset references, module order, question-bank integrity, project isolation, secret-like material, Google Drive scope restrictions, and the presence of the question-bank schema and staging configuration. GitHub Actions runs this validation on pushes to `main` and on pull requests.
+The repository validation script checks JavaScript syntax, local asset references, module order, question-bank integrity, project isolation, secret-like material, Google Drive scope restrictions, the visible-vault structure, and the presence of the question-bank schema and staging configuration. GitHub Actions runs this validation on pushes to `main` and on pull requests.
 
-Large future changes should be developed on a branch, reviewed through a pull request, validated automatically, and smoke-tested in a browser before merge. Question content changes specifically use `question-bank-staging`.
+Large future changes should be developed on a branch, reviewed through a pull request, validated automatically, and smoke-tested in a browser before merge. Question-content changes specifically use `question-bank-staging` and the question-bank change checklist.
 
 ## Compatibility
 
