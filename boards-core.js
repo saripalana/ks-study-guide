@@ -1,27 +1,25 @@
 (function () {
   'use strict';
 
+  const Config = window.BoardsConfig;
+  const Store = window.BoardsStore;
+  if (!Config || !Store) throw new Error('BoardsConfig and BoardsStore must load before BoardsCore.');
+
   const VERSION = 'v3';
-  const KEY = {
-    config: 'ksBoardsActiveSet' + VERSION,
-    history: 'ksBoardsHistory' + VERSION,
-    settings: 'ksBoardsSettings' + VERSION,
-    app: 'kaplanBoardPrepState'
-  };
+  const KEY = Config.storage.keys;
   const fullBank = typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) ? QUESTIONS.slice() : [];
-  const byId = new Map(fullBank.map(function (q) { return [q.id, q]; }));
+  const byId = new Map(fullBank.map(function (question) { return [question.id, question]; }));
 
   function readJson(key, fallback) {
-    try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
-      return value === null ? fallback : value;
-    } catch (error) {
-      return fallback;
-    }
+    return Store.read(key, fallback);
   }
 
-  function writeJson(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+  function writeJson(key, value, options) {
+    return Store.write(key, value, options);
+  }
+
+  function removeJson(key, options) {
+    Store.remove(key, options);
   }
 
   function appState() {
@@ -43,7 +41,7 @@
 
   function historyState() {
     const history = readJson(KEY.history, {});
-    return history && typeof history === 'object' ? history : {};
+    return history && typeof history === 'object' && !Array.isArray(history) ? history : {};
   }
 
   function clampInteger(value, fallback, min, max) {
@@ -71,26 +69,26 @@
 
   function formatClock(totalSeconds) {
     const total = Math.max(0, Math.ceil(totalSeconds));
-    const two = function (n) { return String(n).padStart(2, '0'); };
+    const two = function (number) { return String(number).padStart(2, '0'); };
     return two(Math.floor(total / 3600)) + ':' + two(Math.floor((total % 3600) / 60)) + ':' + two(total % 60);
   }
 
   function shuffle(list) {
     const copy = list.slice();
-    for (let i = copy.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = copy[i];
-      copy[i] = copy[j];
-      copy[j] = temp;
+    for (let index = copy.length - 1; index > 0; index -= 1) {
+      const target = Math.floor(Math.random() * (index + 1));
+      const temporary = copy[index];
+      copy[index] = copy[target];
+      copy[target] = temporary;
     }
     return copy;
   }
 
-  function statusForQuestion(q, state, history, config) {
-    const stored = history[q.id];
+  function statusForQuestion(question, state, history, config) {
+    if (config && config.status === 'in_progress' && config.mode === 'test' && state.testAnswers[question.id]) return 'answered';
+    if (state.answered[question.id]) return state.answered[question.id].correct ? 'correct' : 'incorrect';
+    const stored = history[question.id];
     if (stored && stored.status) return stored.status;
-    if (state.answered[q.id]) return state.answered[q.id].correct ? 'correct' : 'incorrect';
-    if (config && config.status === 'in_progress' && config.mode === 'test' && state.testAnswers[q.id]) return 'answered';
     return 'unused';
   }
 
@@ -98,11 +96,15 @@
     const state = appState();
     const history = historyState();
     const now = Date.now();
+    let changed = false;
     ids.forEach(function (id) {
       const answer = state.answered[id];
-      if (answer) history[id] = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor' };
+      if (!answer) return;
+      const next = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor' };
+      if (!history[id] || history[id].status !== next.status) changed = true;
+      history[id] = next;
     });
-    writeJson(KEY.history, history);
+    if (changed) writeJson(KEY.history, history, { reason: 'Tutor results updated' });
   }
 
   function saveSubmittedTestHistory(ids) {
@@ -110,17 +112,18 @@
     if (!state.testSubmitted['all|study']) return false;
     const history = historyState();
     const now = Date.now();
+    let changed = false;
     ids.forEach(function (id) {
-      const q = byId.get(id);
-      if (!q) return;
+      const question = byId.get(id);
+      if (!question) return;
       const selected = state.testAnswers[id];
-      history[id] = {
-        status: !selected ? 'omitted' : (selected === q.correctLetter ? 'correct' : 'incorrect'),
-        timestamp: now,
-        source: 'test'
-      };
+      const status = !selected ? 'omitted' : (selected === question.correctLetter ? 'correct' : 'incorrect');
+      if (!history[id] || history[id].status !== status || history[id].source !== 'test') {
+        history[id] = { status: status, timestamp: now, source: 'test' };
+        changed = true;
+      }
     });
-    writeJson(KEY.history, history);
+    if (changed) writeJson(KEY.history, history, { reason: 'Test results updated' });
     return true;
   }
 
@@ -129,10 +132,13 @@
     if (!config) return;
     if (config.mode === 'quiz') {
       saveTutorHistory(config.ids);
-    } else if (saveSubmittedTestHistory(config.ids)) {
+      return;
+    }
+    if (saveSubmittedTestHistory(config.ids) && config.status !== 'completed') {
       config.status = 'completed';
       config.completedAt = config.completedAt || Date.now();
-      writeJson(KEY.config, config);
+      writeJson(KEY.config, config, { reason: 'Test completed' });
+      Store.milestone('Test completed', { setId: config.setId, total: config.ids.length });
     }
   }
 
@@ -154,7 +160,7 @@
     state.mode = mode;
     state.index = 0;
     state.atSummary = false;
-    writeJson(KEY.app, state);
+    writeJson(KEY.app, state, { reason: 'New practice set prepared' });
   }
 
   function createConfig(ids, mode, timed, durationSeconds, kind) {
@@ -162,7 +168,9 @@
     const now = Date.now();
     const config = {
       version: VERSION,
-      ids: ids,
+      schemaVersion: Config.schemaVersion,
+      setId: 'set-' + now + '-' + Math.random().toString(36).slice(2, 8),
+      ids: ids.slice(),
       mode: mode,
       timed: !!timed,
       durationSeconds: timed ? durationSeconds : null,
@@ -170,19 +178,23 @@
       status: 'in_progress',
       kind: kind || 'random',
       createdAt: now,
-      lastOpenedAt: now
+      startedAt: now,
+      lastOpenedAt: now,
+      questionTimes: {}
     };
-    writeJson(KEY.config, config);
+    writeJson(KEY.config, config, { reason: 'Practice set created' });
+    Store.milestone('Practice set created', { setId: config.setId, total: ids.length, mode: mode });
     return config;
   }
 
-  window.BoardsCore = {
+  window.BoardsCore = Object.freeze({
     VERSION: VERSION,
     KEY: KEY,
     fullBank: fullBank,
     byId: byId,
     readJson: readJson,
     writeJson: writeJson,
+    removeJson: removeJson,
     appState: appState,
     activeConfig: activeConfig,
     historyState: historyState,
@@ -196,5 +208,5 @@
     syncActiveSetResults: syncActiveSetResults,
     countProgress: countProgress,
     createConfig: createConfig
-  };
+  });
 })();
