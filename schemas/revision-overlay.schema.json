@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://saripalana.github.io/ks-study-guide/schemas/revision-overlay.schema.json",
+  "title": "AI Revision Overlay for Original Bank Material",
+  "type": "object",
+  "required": [
+    "schemaVersion", "bankId", "collectionId", "revisionId", "targetQuestionId",
+    "baseContentHash", "baseContentVersion", "status", "changedFields", "changes",
+    "rationale", "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "bankId": { "type": "string", "minLength": 1 },
+    "collectionId": { "const": "ai-revisions" },
+    "revisionId": { "type": "string", "minLength": 1 },
+    "targetQuestionId": { "type": "string", "minLength": 1 },
+    "baseContentHash": { "type": "string", "minLength": 1 },
+    "baseContentVersion": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["draft", "approved", "active", "retired"] },
+    "changedFields": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "question", "choices", "choiceLetters", "correctLetter", "answerText",
+          "explanation", "categories", "tags", "difficulty", "learningObjectives",
+          "references", "source"
+        ]
+      }
+    },
+    "changes": {
+      "type": "object",
+      "not": { "required": ["id"] },
+      "additionalProperties": true
+    },
+    "rationale": { "type": "string", "minLength": 1 },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "class", "creator", "reviewStatus", "originalBankMaterialPreserved",
+        "overwritesOriginalSource"
+      ],
+      "properties": {
+        "class": { "const": "ai-revised-original" },
+        "creator": { "type": "string", "minLength": 1 },
+        "requestedBy": { "type": "string" },
+        "requestId": { "type": "string" },
+        "createdAt": { "type": ["integer", "string", "null"] },
+        "reviewStatus": { "enum": ["draft", "approved", "active", "retired"] },
+        "originalBankMaterialPreserved": { "const": true },
+        "overwritesOriginalSource": { "const": false }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
