@@ -15,7 +15,7 @@
   window.BoardsConfig = Object.freeze({
     projectId: 'psychiatry-board-practice',
     appName: 'Psychiatry Board Practice',
-    build: '2026.07.18.3',
+    build: '2026.07.18.4',
     schemaVersion: 2,
     storage: Object.freeze({
       keys: storageKeys,
@@ -50,6 +50,7 @@
         production: 'Production',
         drafts: 'Drafts',
         history: 'History',
+        tests: 'Test History',
         changes: 'Change Sets'
       }),
       files: Object.freeze({
@@ -57,7 +58,8 @@
         master: 'question-bank-master.json',
         performance: 'question-performance.json',
         correlated: 'question-bank-correlated-latest.json',
-        draft: 'question-bank-draft.json'
+        draft: 'question-bank-draft.json',
+        testIndex: 'completed-tests-index.json'
       }),
       performanceSyncMinMs: 60000
     }),
