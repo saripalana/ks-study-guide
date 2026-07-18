@@ -1,0 +1,33 @@
+{
+  "template": true,
+  "schemaVersion": 1,
+  "bankId": "ks-psychiatry-core",
+  "collectionId": "ai-created",
+  "id": "ai-YYYYMMDD-topic-001",
+  "contentVersion": 1,
+  "status": "draft",
+  "cardType": "single-best-answer",
+  "chapter": 1,
+  "chapterTitle": "Replace with category title",
+  "qnum": 1,
+  "question": "Replace with question stem.",
+  "choices": ["Choice A", "Choice B", "Choice C", "Choice D"],
+  "choiceLetters": ["A", "B", "C", "D"],
+  "correctLetter": "A",
+  "answerText": "Choice A",
+  "explanation": "Replace with reviewed explanation.",
+  "categories": [],
+  "tags": [],
+  "difficulty": null,
+  "learningObjectives": [],
+  "provenance": {
+    "class": "ai-created",
+    "creator": "OpenAI ChatGPT",
+    "requestedBy": "saripalana",
+    "requestId": "",
+    "createdAt": null,
+    "reviewStatus": "draft",
+    "personalSupplement": true,
+    "originalBankMaterial": false
+  }
+}

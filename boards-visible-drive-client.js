@@ -138,6 +138,16 @@
       return response.json();
     }
 
+    function appProperties(role) {
+      return {
+        projectId: Config.projectId,
+        platformId: Config.platformId,
+        bankId: Config.platform.bankId,
+        vaultRole: role,
+        schemaVersion: String(Config.questionVault.schemaVersion)
+      };
+    }
+
     async function ensureFolder(name, parentId, role) {
       let folder = await findFile(name, parentId, FOLDER_MIME);
       if (folder) return folder;
@@ -145,9 +155,13 @@
         name: name,
         mimeType: FOLDER_MIME,
         parents: parentId ? [parentId] : undefined,
-        appProperties: { projectId: Config.projectId, vaultRole: role }
+        appProperties: appProperties(role)
       });
       return folder;
+    }
+
+    async function findFolder(name, parentId) {
+      return findFile(name, parentId, FOLDER_MIME);
     }
 
     async function readJson(file) {
@@ -162,7 +176,7 @@
         name: name,
         mimeType: JSON_MIME,
         parents: [parentId],
-        appProperties: { projectId: Config.projectId, vaultRole: role, schemaVersion: String(Config.questionVault.schemaVersion) }
+        appProperties: appProperties(role)
       };
       const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
         JSON.stringify(metadata) + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
@@ -210,6 +224,7 @@
       disconnect: disconnect,
       revoke: revoke,
       isConnected: function () { return connected && tokenValid(); },
+      findFolder: findFolder,
       ensureFolder: ensureFolder,
       readNamed: readNamed,
       upsertJson: upsertJson,

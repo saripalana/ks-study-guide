@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="robots" content="noindex, nofollow,noarchive">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Psychiatry Board Practice</title>
   <link rel="stylesheet" href="./boards-shell.css?v=3">
@@ -19,7 +19,7 @@
   <div id="dashboardScreen" class="dashboard-screen">
     <header class="dashboard-topbar">
       <div>
-        <div class="dashboard-eyebrow">K&amp;S QUESTION BANK</div>
+        <div id="activeBankEyebrow" class="dashboard-eyebrow">K&amp;S QUESTION BANK</div>
         <h1>Psychiatry Board Practice</h1>
       </div>
       <div class="dashboard-top-actions">
@@ -30,8 +30,8 @@
     <main class="dashboard-main">
       <section class="welcome-row">
         <div>
-          <h2>Practice dashboard</h2>
-          <p>Create a new randomized set, resume your current set, or review your question-bank status.</p>
+          <h2 id="activeBankHeading">Practice dashboard</h2>
+          <p id="activeBankDescription">Create a new randomized set, resume your current set, or review your question-bank status.</p>
         </div>
       </section>
 
@@ -52,8 +52,8 @@
             <div class="form-section">
               <label class="field-label" for="questionCount">Number of questions</label>
               <div class="number-row">
-                <input id="questionCount" type="number" min="1" max="602" value="40">
-                <span id="questionRangeText">of 602 available</span>
+                <input id="questionCount" type="number" min="1" max="5000" value="40">
+                <span id="questionRangeText">of available</span>
               </div>
             </div>
 
@@ -113,7 +113,7 @@
               <div>
                 <div class="card-kicker">QUESTION BANK</div>
                 <h3>All question statuses</h3>
-                <p>Every question is shown below. Colors indicate your latest recorded result; the gold corner marks a flag.</p>
+                <p>Every question in the active bank is shown below. Colors indicate the latest recorded result; the gold corner marks a flag.</p>
               </div>
             </div>
             <div id="bankLegend" class="bank-legend"></div>
@@ -133,22 +133,28 @@
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="./boards-config.js?v=3"></script>
+  <script src="./boards-config.js?v=4"></script>
   <script src="./data.js?v=3"></script>
+  <script src="./generated/ks-psychiatry-core-content.js?v=1"></script>
+  <script src="./boards-content-provenance.js?v=1"></script>
   <script src="./questions-global.js?v=1"></script>
+  <script src="./boards-bank-registry.js?v=1"></script>
   <script src="./boards-store.js?v=1"></script>
-  <script src="./boards-core.js?v=4"></script>
+  <script src="./boards-core.js?v=5"></script>
   <script src="./boards-dashboard.js?v=3"></script>
-  <script src="./boards-exam-v2.js?v=3"></script>
-  <script src="./boards-analytics.js?v=4"></script>
-  <script src="./boards-builder.js?v=1"></script>
+  <script src="./boards-exam-v2.js?v=4"></script>
+  <script src="./boards-exam-source.js?v=1"></script>
+  <script src="./boards-exact-timing.js?v=1"></script>
+  <script src="./boards-analytics.js?v=5"></script>
+  <script src="./boards-builder.js?v=2"></script>
   <script src="./boards-nav-status.js?v=1"></script>
   <script src="./boards-maintenance.js?v=1"></script>
   <script src="./boards-safety.js?v=1"></script>
-  <script src="./boards-question-bank-model.js?v=2"></script>
-  <script src="./boards-visible-drive-client.js?v=1"></script>
+  <script src="./boards-question-bank-model.js?v=4"></script>
+  <script src="./boards-model-provenance.js?v=1"></script>
+  <script src="./boards-visible-drive-client.js?v=2"></script>
   <script src="./boards-drive-backup.js?v=2"></script>
-  <script src="./boards-question-vault.js?v=2"></script>
+  <script src="./boards-question-vault.js?v=3"></script>
   <script src="./boards-init.js?v=4"></script>
 </body>
 </html>

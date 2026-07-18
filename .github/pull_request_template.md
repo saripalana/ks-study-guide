@@ -2,47 +2,72 @@
 
 Describe what changed and why.
 
+## Target bank and collection
+
+- Bank ID:
+- Collection: `original-bank` / `ai-created` / `user-created` / `ai-revisions` / new bank
+- Base production hash, when applicable:
+- Existing bank or new bank:
+
 ## Change type
 
-- [ ] Question text, answer choice, correct answer, or explanation
-- [ ] New question(s)
+- [ ] Original question text, choices, correct answer, or explanation via reversible overlay
+- [ ] New AI-created supplemental card(s)
+- [ ] New user-created supplemental card(s)
 - [ ] Question retirement/removal
-- [ ] Practice interface or analytics
-- [ ] Storage, backup, Drive, or security
+- [ ] New question bank or bank metadata
+- [ ] Categories, tags, learning objectives, or difficulty metadata
+- [ ] Practice interface, exact timing, analytics, or study intelligence
+- [ ] Storage, backup, Drive, AI workspace, or security
 - [ ] Documentation only
+
+## Content provenance checklist
+
+- [ ] `data.js` remains the immutable imported source and was not used to disguise AI text as original material.
+- [ ] Each supplemental card is stored as its own JSON file in the correct collection folder.
+- [ ] AI-created cards declare `originalBankMaterial: false` and display as personal supplements.
+- [ ] Revisions to original cards use an `ai-revisions` overlay rather than overwriting the original source.
+- [ ] Every revision declares its target question, base content hash, changed fields, rationale, and provenance.
+- [ ] The original snapshot remains recoverable and visible for AI-revised cards.
+- [ ] Stable question IDs were preserved and new IDs have never been used before.
+- [ ] `node scripts/build-content.mjs` was run and the generated bundle is current.
+- [ ] Source filters correctly separate original unchanged, AI-revised original, AI-created, and user-created cards.
 
 ## Question-bank safety checklist
 
-Complete this section whenever `data.js`, the question schema, or a Question Vault module changes.
-
 - [ ] Work was prepared on `question-bank-staging` or another non-production branch.
-- [ ] Existing question IDs were preserved.
-- [ ] New questions use new IDs that have never been used before.
-- [ ] Any removal is intentional and its effect on saved tests/analytics was reviewed.
+- [ ] The correct stable bank ID was used.
+- [ ] Existing `bankId::questionId` composite IDs were preserved.
+- [ ] Any retirement/removal is intentional and its effect on saved tests and analytics was reviewed.
 - [ ] Choices and choice letters have equal lengths.
 - [ ] Every correct answer letter exists among the available choices.
-- [ ] The Drive draft or change set was reviewed when applicable.
-- [ ] The prior production question bank remains recoverable through Git history and Drive History.
-- [ ] No Drive Draft file is being treated as an automatic production source.
+- [ ] Categories, tags, and learning objectives use stable machine-readable identifiers when added.
+- [ ] The bank and total platform remain within the 5,000-card ceiling.
+- [ ] The Drive Draft, AI proposal, or Change Set was reviewed when applicable.
+- [ ] The prior production bank remains recoverable through Git history and bank-specific Drive History.
+- [ ] No Drive Draft, AI Request, AI Proposal, or Export is being treated as an automatic production source.
 
 ## Data and security checklist
 
 - [ ] No OAuth client secret, access token, refresh token, service-account key, password, patient information, or downloaded credential file is included.
 - [ ] Google Drive permissions remain limited to `drive.appdata` and/or `drive.file`.
-- [ ] New browser storage keys are registered in `BoardsConfig`.
-- [ ] Backup and restore behavior remains project-scoped.
+- [ ] New browser storage keys are registered and bank-namespaced in `BoardsConfig`.
+- [ ] Hidden backups and visible vault data remain scoped to the correct bank.
 - [ ] Destructive actions create or preserve recovery history.
+- [ ] AI context contains study data only and no clinical or patient information.
 
 ## Validation
 
 - [ ] `node scripts/validate.mjs` passes.
-- [ ] The dashboard loads after a hard refresh.
+- [ ] The active-bank dashboard loads after a hard refresh.
 - [ ] A short Test-mode set was completed and reviewed.
 - [ ] A short Tutor-mode set was completed and reviewed.
+- [ ] Per-card active milliseconds, first-response latency, answer changes, and review display were checked when timing changed.
 - [ ] Saved-test deletion was checked when affected.
 - [ ] Google Drive current backup was checked when affected.
-- [ ] Question Vault Production, Draft, History, Test History, and correlated export were checked when affected.
+- [ ] Platform Registry, bank Production, Drafts, History, Test History, Change Sets, and AI Workspace were checked when affected.
+- [ ] Another registered bank's storage and Drive folders were not altered.
 
 ## Review notes
 
-List any known limitations, migration considerations, or manual follow-up steps.
+List known limitations, migration considerations, capacity effects, provenance decisions, or manual follow-up steps.
