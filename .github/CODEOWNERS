@@ -1,22 +1,40 @@
 # Repository owner review is required for protected study data and release controls.
 * @saripalana
 
-# Question content, bank registry, and portable schemas.
+# Immutable original source and bank registry.
 /data.js @saripalana
 /boards-bank-registry.js @saripalana
-/schemas/question-bank.schema.json @saripalana
-/docs/QUESTION_BANK_GOVERNANCE.md @saripalana
-/docs/QUESTION_VAULT.md @saripalana
-/docs/MULTI_BANK_PLATFORM.md @saripalana
 
-# Question platform, persistence, security, and validation boundaries.
+# Separate personal card collections, revision overlays, generated bundles, and schemas.
+/content/ @saripalana
+/generated/ @saripalana
+/schemas/question-bank.schema.json @saripalana
+/schemas/supplemental-card.schema.json @saripalana
+/schemas/revision-overlay.schema.json @saripalana
+/scripts/build-content.mjs @saripalana
+/boards-content-provenance.js @saripalana
+/boards-provenance-ui.js @saripalana
+/boards-model-provenance.js @saripalana
+
+# Question platform, exact timing, persistence, security, and validation boundaries.
 /boards-config.js @saripalana
 /boards-store.js @saripalana
 /boards-core.js @saripalana
+/boards-builder.js @saripalana
+/boards-exam-source.js @saripalana
+/boards-exact-timing.js @saripalana
 /boards-question-bank-model.js @saripalana
 /boards-visible-drive-client.js @saripalana
 /boards-question-vault.js @saripalana
 /boards-drive-backup.js @saripalana
+/boards-study.html @saripalana
+/study-shell.css @saripalana
 /SECURITY.md @saripalana
 /scripts/validate.mjs @saripalana
 /.github/workflows/validate.yml @saripalana
+
+# Governance documentation.
+/docs/QUESTION_BANK_GOVERNANCE.md @saripalana
+/docs/QUESTION_VAULT.md @saripalana
+/docs/MULTI_BANK_PLATFORM.md @saripalana
+/docs/CONTENT_PROVENANCE.md @saripalana
