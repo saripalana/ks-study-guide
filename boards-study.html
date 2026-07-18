@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Psychiatry Board Practice Set</title>
+  <link rel="stylesheet" href="./study-shell.css?v=1">
+</head>
+<body>
+  <div id="landingScreen"></div>
+  <div id="studyScreen">
+    <header>
+      <h1>Psychiatry Board Practice</h1>
+      <div class="controls">
+        <button type="button" id="homeBtn" class="home-btn" title="Back to chapter selection">⌂ Home</button>
+        <select id="chapterSelect"></select>
+        <div class="tab-group">
+          <button id="viewStudyBtn" data-view="study">Study</button>
+          <button id="viewFlaggedBtn" data-view="flagged">Flagged (<span id="flaggedCount">0</span>)</button>
+          <button id="viewIncorrectBtn" data-view="incorrect">Incorrect (<span id="incorrectCount">0</span>)</button>
+        </div>
+        <div class="mode-toggle">
+          <button id="modeQuizBtn" data-mode="quiz">Quiz</button>
+          <button id="modeTestBtn" data-mode="test">Test</button>
+          <button id="modeBrowseBtn" data-mode="browse">Browse</button>
+        </div>
+        <span class="score-badge" id="scoreBadge"></span>
+      </div>
+      <div class="controls search-row">
+        <input type="search" id="searchInput" placeholder="Search questions, choices, or explanations...">
+        <button type="button" id="clearSearchBtn" class="btn-secondary" style="display:none">× Clear</button>
+      </div>
+    </header>
+    <div class="qnav" id="qnav"></div>
+    <main>
+      <div class="progress">
+        <span id="progressText"></span>
+        <span class="reset-links">
+          <button class="reset-link" id="resetSectionBtn">Reset this section</button>
+          <button class="reset-link" id="resetAllBtn">Reset entire QBank</button>
+        </span>
+      </div>
+      <div id="content"></div>
+    </main>
+    <div class="bottom-bar">
+      <button id="prevBtn">← Previous</button>
+      <button id="finishTestBtn" class="finish-btn" style="display:none">Finish Test</button>
+      <button id="nextBtn">Next →</button>
+    </div>
+    <footer>Personal ABPN study runtime. Original and supplemental content remain visibly attributed.</footer>
+  </div>
+  <script src="./boards-config.js?v=4"></script>
+  <script src="./data.js?v=3"></script>
+  <script src="./generated/ks-psychiatry-core-content.js?v=1"></script>
+  <script src="./boards-content-provenance.js?v=1"></script>
+  <script src="./app.js?v=3"></script>
+  <script src="./boards-provenance-ui.js?v=1"></script>
+</body>
+</html>
