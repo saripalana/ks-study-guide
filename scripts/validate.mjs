@@ -17,11 +17,11 @@ for (const asset of localAssets) {
 }
 
 const scriptOrder = [
-  'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
-  'boards-dashboard.js', 'boards-exam-v2.js', 'boards-analytics.js', 'boards-builder.js',
-  'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
-  'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-drive-backup.js',
-  'boards-question-vault.js', 'boards-init.js'
+  'boards-config.js', 'data.js', 'questions-global.js', 'boards-bank-registry.js',
+  'boards-store.js', 'boards-core.js', 'boards-dashboard.js', 'boards-exam-v2.js',
+  'boards-analytics.js', 'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js',
+  'boards-safety.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js',
+  'boards-drive-backup.js', 'boards-question-vault.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -49,17 +49,24 @@ for (const file of javascriptFiles) {
   }
 }
 
+let questionCount = 0;
 try {
   const sandbox = {};
   vm.runInNewContext(`${read('data.js')}\n;globalThis.__QUESTIONS = QUESTIONS;`, sandbox, { timeout: 5000 });
   const questions = sandbox.__QUESTIONS;
   if (!Array.isArray(questions) || !questions.length) fail('data.js did not produce a non-empty QUESTIONS array.');
+  questionCount = Array.isArray(questions) ? questions.length : 0;
+  if (questionCount > 5000) fail(`The active bank contains ${questionCount} cards, exceeding the 5000-card ceiling.`);
   const ids = new Set();
+  const compositeIds = new Set();
   const chapterNumbers = new Set();
   questions.forEach((question, index) => {
     if (!question || typeof question.id !== 'string' || !question.id) fail(`Question ${index + 1} has no valid id.`);
     else if (ids.has(question.id)) fail(`Duplicate question id: ${question.id}`);
     else ids.add(question.id);
+    const compositeId = `ks-psychiatry-core::${question?.id || ''}`;
+    if (compositeIds.has(compositeId)) fail(`Duplicate composite question id: ${compositeId}`);
+    compositeIds.add(compositeId);
     const chapterKey = `${question.chapter}|${question.qnum}`;
     if (chapterNumbers.has(chapterKey)) warn(`Duplicate chapter/question number: ${question.chapter}.${question.qnum}`);
     chapterNumbers.add(chapterKey);
@@ -68,7 +75,7 @@ try {
     }
     if (!question.choiceLetters?.includes(question.correctLetter)) fail(`Question ${question?.id || index + 1} has an invalid correct letter.`);
   });
-  console.log(`Validated ${questions.length} questions with unique stable IDs.`);
+  console.log(`Validated ${questionCount} questions with unique stable and composite IDs.`);
 } catch (error) {
   fail(`Question-bank validation failed: ${error.message}`);
 }
@@ -97,37 +104,63 @@ for (const scope of scopeMatches) if (!allowedScopes.has(scope)) fail(`Forbidden
 for (const scope of allowedScopes) if (!scopeMatches.has(scope)) fail(`Required limited Drive scope is missing: ${scope}`);
 
 const configCode = read('boards-config.js');
-const projectIdMatch = configCode.match(/projectId:\s*'([^']+)'/);
-if (!projectIdMatch || !projectIdMatch[1]) fail('A stable projectId is required in boards-config.js.');
-if (!configCode.includes("stagingBranch: 'question-bank-staging'")) fail('Question-bank staging branch configuration is missing.');
-if (!configCode.includes("datasetId: 'psychiatry-board-question-bank'")) fail('Question-bank dataset identity is missing.');
-if (!configCode.includes("tests: 'Test History'")) fail('Append-only Test History folder configuration is missing.');
-if (!configCode.includes("testIndex: 'completed-tests-index.json'")) fail('Completed-test archive index configuration is missing.');
+const requiredConfigFragments = [
+  "platformId: 'abpn-personal-study-platform'",
+  'maxTotalCards: 5000',
+  "id: 'ks-psychiatry-core'",
+  "stagingBranch: 'question-bank-staging'",
+  "tests: 'Test History'",
+  "testIndex: 'completed-tests-index.json'",
+  "registry: 'Registry'",
+  "banks: 'Banks'",
+  "aiWorkspace: 'AI Workspace'",
+  "aiRequests: 'Requests'",
+  "aiProposals: 'Proposals'",
+  "aiExports: 'Exports'"
+];
+for (const fragment of requiredConfigFragments) {
+  if (!configCode.includes(fragment)) fail(`Required multi-bank configuration is missing: ${fragment}`);
+}
 
 for (const registeredModule of [
   'boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js',
-  'boards-drive-backup.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-question-vault.js'
+  'boards-drive-backup.js', 'boards-bank-registry.js', 'boards-question-bank-model.js',
+  'boards-visible-drive-client.js', 'boards-question-vault.js'
 ]) {
   const content = read(registeredModule);
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
 }
 
+const registryCode = read('boards-bank-registry.js');
+for (const fragment of ['compositeId', 'platformRegistry', 'maxTotalCards', 'categoriesForQuestion']) {
+  if (!registryCode.includes(fragment)) fail(`Bank registry capability is missing: ${fragment}`);
+}
+
 const vaultCode = read('boards-question-vault.js');
-for (const safeguard of ['question-bank-staging', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
-  if (!vaultCode.includes(safeguard)) fail(`Question Vault safeguard is missing: ${safeguard}`);
+for (const safeguard of [
+  'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false',
+  'AI Workspace', 'ai-workspace-manifest.json', 'question-change-request-template.json',
+  'question-change-proposal-template.json', 'Banks/', 'productionAutoPublish: false'
+]) {
+  if (!vaultCode.includes(safeguard)) fail(`Question platform safeguard is missing: ${safeguard}`);
 }
 if (vaultCode.includes('deleteFile(') || vaultCode.includes("method: 'DELETE'")) {
-  fail('Question Vault must not expose file-deletion behavior.');
+  fail('Question platform must not expose Drive file-deletion behavior.');
 }
 
 const modelCode = read('boards-question-bank-model.js');
-if (!modelCode.includes('processedTestIds')) fail('Cumulative per-question performance must track processed test IDs.');
-if (!modelCode.includes('stableStringify')) fail('Question-bank packages require deterministic serialization.');
+for (const capability of [
+  'processedTestIds', 'stableStringify', 'timingBands', 'selectedLetterCounts',
+  'recentAttempts', 'categoryPerformance', 'compositeId', 'maxCardsPerBank'
+]) {
+  if (!modelCode.includes(capability)) fail(`Question/performance model capability is missing: ${capability}`);
+}
 
 const requiredRepositoryFiles = [
   'schemas/question-bank.schema.json',
   'docs/QUESTION_BANK_GOVERNANCE.md',
   'docs/QUESTION_VAULT.md',
+  'docs/MULTI_BANK_PLATFORM.md',
   '.github/CODEOWNERS',
   '.github/pull_request_template.md'
 ];
@@ -140,7 +173,9 @@ if (fs.existsSync(schemaPath)) {
   try {
     const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
     if (schema?.properties?.projectId?.const !== 'psychiatry-board-practice') fail('Question-bank schema projectId does not match the app.');
-    if (schema?.properties?.datasetId?.const !== 'psychiatry-board-question-bank') fail('Question-bank schema datasetId does not match the app.');
+    if (schema?.properties?.platformId?.const !== 'abpn-personal-study-platform') fail('Question-bank schema platformId does not match the app.');
+    if (schema?.properties?.questionCount?.maximum !== 5000) fail('Question-bank schema must enforce the 5000-card ceiling.');
+    if (schema?.properties?.questions?.maxItems !== 5000) fail('Question array schema must enforce the 5000-card ceiling.');
   } catch (error) {
     fail(`Question-bank schema is invalid JSON: ${error.message}`);
   }
@@ -152,4 +187,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Validated ${localAssets.length} local HTML assets and ${javascriptFiles.length} JavaScript files.`);
-console.log('Security, question governance, and architecture checks passed.');
+console.log(`Multi-bank capacity check passed for ${questionCount} active cards within a 5000-card personal platform.`);
+console.log('Security, AI-workspace, question governance, and architecture checks passed.');
