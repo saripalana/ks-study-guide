@@ -1,0 +1,19 @@
+# Repository owner review is required for protected study data and release controls.
+* @saripalana
+
+# Question content and its portable schema.
+/data.js @saripalana
+/schemas/question-bank.schema.json @saripalana
+/docs/QUESTION_BANK_GOVERNANCE.md @saripalana
+/docs/QUESTION_VAULT.md @saripalana
+
+# Question vault, persistence, security, and validation boundaries.
+/boards-config.js @saripalana
+/boards-store.js @saripalana
+/boards-question-bank-model.js @saripalana
+/boards-visible-drive-client.js @saripalana
+/boards-question-vault.js @saripalana
+/boards-drive-backup.js @saripalana
+/SECURITY.md @saripalana
+/scripts/validate.mjs @saripalana
+/.github/workflows/validate.yml @saripalana
