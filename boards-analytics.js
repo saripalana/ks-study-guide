@@ -1,31 +1,435 @@
-(function(){
-'use strict';
-const TESTS_KEY='ksBoardsTestsV3';
-const CONFIG_KEY='ksBoardsActiveSetv3';
-const APP_KEY='kaplanBoardPrepState';
-const byId=new Map((window.QUESTIONS||[]).map(q=>[q.id,q]));
-const read=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v===null?d:v}catch(e){return d}};
-const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmtSec=s=>{s=Math.max(0,Math.round(Number(s)||0));if(s<60)return s+' sec';const m=Math.floor(s/60),r=s%60;if(m<60)return m+'m '+String(r).padStart(2,'0')+'s';return Math.floor(m/60)+'h '+(m%60)+'m'};
-const fmtDate=t=>new Date(t).toLocaleString([], {month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
-function state(){const s=read(APP_KEY,{});s.answered=s.answered||{};s.testAnswers=s.testAnswers||{};s.testSubmitted=s.testSubmitted||{};s.flagged=s.flagged||{};return s}
-function tests(){const t=read(TESTS_KEY,[]);return Array.isArray(t)?t:[]}
-function saveTests(t){write(TESTS_KEY,t.slice(0,50))}
-function ensureConfig(){const c=read(CONFIG_KEY,null);if(!c||!Array.isArray(c.ids))return null;if(!c.setId)c.setId='set-'+(c.createdAt||Date.now());if(!c.questionTimes)c.questionTimes={};if(!c.startedAt)c.startedAt=c.createdAt||Date.now();write(CONFIG_KEY,c);return c}
-function archiveCompleted(){const c=ensureConfig(),s=state();if(!c||c.status!=='completed')return;const results={},cats={};let correct=0,incorrect=0,omitted=0,answered=0,totalSec=0;
-c.ids.forEach(id=>{const q=byId.get(id);if(!q)return;let selected=null,status='unused';if(c.mode==='quiz'){const a=s.answered[id];if(a){selected=a.selectedLetter||null;status=a.correct?'correct':'incorrect'}}else{selected=s.testAnswers[id]||null;status=!selected?'omitted':(selected===q.correctLetter?'correct':'incorrect')}
-const sec=Math.max(0,Number(c.questionTimes[id])||0);results[id]={status,selectedLetter:selected,seconds:sec};if(status==='correct'){correct++;answered++}else if(status==='incorrect'){incorrect++;answered++}else if(status==='omitted')omitted++;if(status!=='unused')totalSec+=sec;
-const k=String(q.chapter);if(!cats[k])cats[k]={chapter:q.chapter,title:q.chapterTitle||('Chapter '+q.chapter),total:0,correct:0,incorrect:0,omitted:0,seconds:0};const x=cats[k];if(status!=='unused')x.total++;if(status==='correct')x.correct++;else if(status==='incorrect')x.incorrect++;else if(status==='omitted')x.omitted++;if(status!=='unused')x.seconds+=sec;});
-const denom=c.mode==='test'?c.ids.length:answered;const rec={setId:c.setId,mode:c.mode,timed:!!c.timed,kind:c.kind||'random',createdAt:c.createdAt||Date.now(),completedAt:c.completedAt||Date.now(),total:c.ids.length,answered,correct,incorrect,omitted,scorePct:denom?Math.round(correct/denom*1000)/10:0,elapsedSeconds:Math.max(0,Math.round(((c.completedAt||Date.now())-(c.startedAt||c.createdAt||Date.now()))/1000)),averageSeconds:answered?Math.round(totalSec/answered*10)/10:0,ids:c.ids.slice(),results,flagged:Object.assign({},s.flagged),categories:Object.values(cats).map(x=>{const d=x.correct+x.incorrect+x.omitted;x.accuracyPct=d?Math.round(x.correct/d*1000)/10:0;x.averageSeconds=(x.correct+x.incorrect)?Math.round(x.seconds/(x.correct+x.incorrect)*10)/10:0;return x}).sort((a,b)=>a.chapter-b.chapter)};
-const list=tests(),i=list.findIndex(t=>t.setId===rec.setId);if(i>=0)list[i]=rec;else list.unshift(rec);saveTests(list)}
-function tick(){const c=ensureConfig();if(!c||c.status!=='in_progress')return;const exam=document.getElementById('examScreen'),frame=document.getElementById('examFrame');if(!exam||exam.hidden||!frame||!frame.contentDocument)return;try{const doc=frame.contentDocument;const current=doc.querySelector('.qnav-pill.current');if(!current)return;const idx=Number(current.getAttribute('data-index'));const id=c.ids[idx];if(!id)return;c.questionTimes[id]=(Number(c.questionTimes[id])||0)+1;write(CONFIG_KEY,c)}catch(e){}}
-function analytics(){const list=tests(),cats={};let correct=0,incorrect=0,omitted=0,sec=0,resp=0;const unique=new Set();list.forEach(t=>Object.entries(t.results||{}).forEach(([id,r])=>{if(!r||r.status==='unused')return;unique.add(id);if(r.status==='correct'){correct++;resp++}else if(r.status==='incorrect'){incorrect++;resp++}else if(r.status==='omitted')omitted++;sec+=Number(r.seconds)||0;const q=byId.get(id);if(!q)return;const k=String(q.chapter);if(!cats[k])cats[k]={chapter:q.chapter,title:q.chapterTitle||('Chapter '+q.chapter),attempts:0,correct:0,incorrect:0,omitted:0,seconds:0};const x=cats[k];x.attempts++;if(r.status==='correct')x.correct++;else if(r.status==='incorrect')x.incorrect++;else x.omitted++;x.seconds+=Number(r.seconds)||0;}));const d=correct+incorrect+omitted;return{tests:list.length,unique:unique.size,responses:resp,accuracy:d?Math.round(correct/d*1000)/10:0,avg:resp?Math.round(sec/resp*10)/10:0,categories:Object.values(cats).map(x=>{const d=x.correct+x.incorrect+x.omitted;x.accuracy=d?Math.round(x.correct/d*1000)/10:0;x.avg=(x.correct+x.incorrect)?Math.round(x.seconds/(x.correct+x.incorrect)*10)/10:0;return x}).sort((a,b)=>a.chapter-b.chapter)}}
-function ensureUi(){if(document.getElementById('analyticsSection'))return;const target=document.querySelector('.dashboard-column-wide');if(!target)return;const wrap=document.createElement('section');wrap.id='analyticsSection';wrap.className='analytics-section';wrap.innerHTML='<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">ANALYTICS</div><h3>Performance by category</h3></div></div><div id="analyticsMetrics" class="analytics-metrics"></div><div id="categoryTable"></div></article><article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">HISTORY</div><h3>Previous tests</h3><p class="field-help">Completed sets are saved in this browser for detailed review.</p></div></div><div id="testHistory"></div></article>';target.appendChild(wrap);const modal=document.createElement('div');modal.id='testReviewModal';modal.className='history-modal';modal.hidden=true;modal.innerHTML='<div class="history-dialog"><button id="closeHistoryModal" class="history-close" type="button">×</button><div id="historyDetail"></div></div>';document.body.appendChild(modal);modal.addEventListener('click',e=>{if(e.target===modal)modal.hidden=true});document.getElementById('closeHistoryModal').onclick=()=>modal.hidden=true}
-function render(){archiveCompleted();ensureUi();const a=analytics();document.getElementById('analyticsMetrics').innerHTML=[['Completed tests',a.tests],['Unique questions completed',a.unique],['Total answered',a.responses],['Overall accuracy',a.accuracy+'%'],['Average time / question',fmtSec(a.avg)]].map(x=>'<div class="analytics-metric"><strong>'+x[1]+'</strong><span>'+x[0]+'</span></div>').join('');
-const ct=document.getElementById('categoryTable');ct.innerHTML=a.categories.length?'<div class="category-table"><div class="category-row category-head"><span>Category</span><span>Completed</span><span>Correct</span><span>Accuracy</span><span>Avg time</span></div>'+a.categories.map(x=>'<div class="category-row"><span><strong>Ch '+x.chapter+'</strong> '+esc(x.title)+'</span><span>'+x.attempts+'</span><span>'+x.correct+'</span><span>'+x.accuracy+'%</span><span>'+fmtSec(x.avg)+'</span></div>').join('')+'</div>':'<div class="analytics-empty">Complete a test or tutor set to begin building category analytics.</div>';
-const h=document.getElementById('testHistory'),list=tests();h.innerHTML=list.length?list.map(t=>'<div class="history-row"><div><strong>'+t.total+' questions · '+(t.mode==='test'?'Test':'Tutor')+'</strong><span>'+fmtDate(t.completedAt)+'</span></div><div class="history-score">'+t.scorePct+'%</div><div class="history-meta">'+t.correct+' correct · '+t.incorrect+' incorrect · '+t.omitted+' omitted<br>'+fmtSec(t.averageSeconds)+' / question</div><div class="history-actions"><button class="secondary-button review-history" data-id="'+esc(t.setId)+'">Review</button><button class="secondary-button delete-history" data-id="'+esc(t.setId)+'">Delete</button></div></div>').join(''):'<div class="analytics-empty">No completed tests saved yet.</div>';
-h.querySelectorAll('.review-history').forEach(b=>b.onclick=()=>showReview(b.dataset.id));h.querySelectorAll('.delete-history').forEach(b=>b.onclick=()=>{if(confirm('Delete this saved test?')){saveTests(tests().filter(t=>t.setId!==b.dataset.id));render()}})}
-function showReview(id){const t=tests().find(x=>x.setId===id);if(!t)return;const modal=document.getElementById('testReviewModal'),detail=document.getElementById('historyDetail');const cats=(t.categories||[]).map(x=>'<tr><td>Ch '+x.chapter+' — '+esc(x.title)+'</td><td>'+x.total+'</td><td>'+x.correct+'</td><td>'+x.accuracyPct+'%</td><td>'+fmtSec(x.averageSeconds)+'</td></tr>').join('');const qs=t.ids.map((qid,i)=>{const q=byId.get(qid),r=t.results[qid]||{};if(!q)return'';return'<details class="review-question '+r.status+'"><summary>Question '+(i+1)+' · Ch '+q.chapter+' Q'+q.qnum+' · '+r.status+' · '+fmtSec(r.seconds)+'</summary><p>'+esc(q.question)+'</p><p><strong>Your answer:</strong> '+esc(r.selectedLetter||'Omitted')+' &nbsp; <strong>Correct:</strong> '+esc(q.correctLetter)+'</p><p class="review-explanation">'+esc(q.explanation||'')+'</p></details>'}).join('');detail.innerHTML='<h2>Saved test review</h2><div class="review-summary"><strong>'+t.scorePct+'%</strong><span>'+t.correct+' correct · '+t.incorrect+' incorrect · '+t.omitted+' omitted</span><span>'+fmtSec(t.averageSeconds)+' average per answered question</span><span>'+fmtDate(t.completedAt)+'</span></div><h3>Category breakdown</h3><div class="review-table-wrap"><table><thead><tr><th>Category</th><th>Completed</th><th>Correct</th><th>Accuracy</th><th>Avg time</th></tr></thead><tbody>'+cats+'</tbody></table></div><h3>Question review</h3>'+qs;modal.hidden=false}
-setInterval(tick,1000);setInterval(()=>{const d=document.getElementById('dashboardScreen');if(d&&!d.hidden)render()},2000);window.addEventListener('message',()=>setTimeout(render,150));window.addEventListener('load',()=>setTimeout(render,300));
+(function () {
+  'use strict';
+
+  const Config = window.BoardsConfig;
+  const Store = window.BoardsStore;
+  const C = window.BoardsCore;
+  if (!Config || !Store || !C) throw new Error('Analytics dependencies are unavailable.');
+
+  const TESTS_KEY = Config.storage.keys.tests;
+  const DELETED_KEY = Config.storage.keys.deletedTests;
+  const CONFIG_KEY = Config.storage.keys.config;
+  const APP_KEY = Config.storage.keys.app;
+  const byId = C.byId;
+
+  let renderTimer = null;
+  let pendingTimes = {};
+  let pendingSetId = null;
+  let secondsSinceFlush = 0;
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+    });
+  }
+
+  function formatSeconds(value) {
+    const seconds = Math.max(0, Math.round(Number(value) || 0));
+    if (seconds < 60) return seconds + ' sec';
+    const minutes = Math.floor(seconds / 60);
+    const remainder = seconds % 60;
+    if (minutes < 60) return minutes + 'm ' + String(remainder).padStart(2, '0') + 's';
+    return Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'm';
+  }
+
+  function formatDate(value) {
+    return new Date(value).toLocaleString([], {
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+  }
+
+  function tests() {
+    const value = Store.read(TESTS_KEY, []);
+    return Array.isArray(value) ? value : [];
+  }
+
+  function deletedTests() {
+    const value = Store.read(DELETED_KEY, []);
+    return Array.isArray(value) ? value : [];
+  }
+
+  function saveTests(value, reason) {
+    Store.write(TESTS_KEY, value.slice(0, Config.limits.savedTests), { reason: reason || 'Saved-test history updated' });
+  }
+
+  function state() {
+    const value = Store.read(APP_KEY, {});
+    value.answered = value.answered || {};
+    value.testAnswers = value.testAnswers || {};
+    value.testSubmitted = value.testSubmitted || {};
+    value.flagged = value.flagged || {};
+    return value;
+  }
+
+  function ensureConfig() {
+    const config = Store.read(CONFIG_KEY, null);
+    if (!config || !Array.isArray(config.ids)) return null;
+    let changed = false;
+    if (!config.setId) {
+      config.setId = 'set-' + (config.createdAt || Date.now());
+      changed = true;
+    }
+    if (!config.questionTimes || typeof config.questionTimes !== 'object') {
+      config.questionTimes = {};
+      changed = true;
+    }
+    if (!config.startedAt) {
+      config.startedAt = config.createdAt || Date.now();
+      changed = true;
+    }
+    if (changed) Store.write(CONFIG_KEY, config, { reason: 'Upgraded active-set metadata' });
+    return config;
+  }
+
+  function buildRecord(config, appState) {
+    const results = {};
+    const categories = {};
+    let correct = 0;
+    let incorrect = 0;
+    let omitted = 0;
+    let answered = 0;
+    let totalSeconds = 0;
+
+    config.ids.forEach(function (id) {
+      const question = byId.get(id);
+      if (!question) return;
+      let selectedLetter = null;
+      let status = 'unused';
+
+      if (config.mode === 'quiz') {
+        const answer = appState.answered[id];
+        if (answer) {
+          selectedLetter = answer.selectedLetter || null;
+          status = answer.correct ? 'correct' : 'incorrect';
+        }
+      } else {
+        selectedLetter = appState.testAnswers[id] || null;
+        status = !selectedLetter ? 'omitted' : (selectedLetter === question.correctLetter ? 'correct' : 'incorrect');
+      }
+
+      const seconds = Math.max(0, Number(config.questionTimes[id]) || 0);
+      results[id] = { status: status, selectedLetter: selectedLetter, seconds: seconds };
+      if (status === 'correct') { correct += 1; answered += 1; }
+      else if (status === 'incorrect') { incorrect += 1; answered += 1; }
+      else if (status === 'omitted') omitted += 1;
+      if (status !== 'unused') totalSeconds += seconds;
+
+      const categoryKey = String(question.chapter);
+      if (!categories[categoryKey]) {
+        categories[categoryKey] = {
+          chapter: question.chapter,
+          title: question.chapterTitle || ('Chapter ' + question.chapter),
+          total: 0,
+          correct: 0,
+          incorrect: 0,
+          omitted: 0,
+          seconds: 0
+        };
+      }
+      const category = categories[categoryKey];
+      if (status !== 'unused') category.total += 1;
+      if (status === 'correct') category.correct += 1;
+      else if (status === 'incorrect') category.incorrect += 1;
+      else if (status === 'omitted') category.omitted += 1;
+      if (status !== 'unused') category.seconds += seconds;
+    });
+
+    const denominator = config.mode === 'test' ? config.ids.length : answered;
+    return {
+      schemaVersion: Config.schemaVersion,
+      setId: config.setId,
+      mode: config.mode,
+      timed: !!config.timed,
+      kind: config.kind || 'random',
+      pool: config.pool || null,
+      chapters: Array.isArray(config.chapters) ? config.chapters.slice() : null,
+      createdAt: config.createdAt || Date.now(),
+      completedAt: config.completedAt || Date.now(),
+      total: config.ids.length,
+      answered: answered,
+      correct: correct,
+      incorrect: incorrect,
+      omitted: omitted,
+      scorePct: denominator ? Math.round(correct / denominator * 1000) / 10 : 0,
+      elapsedSeconds: Math.max(0, Math.round(((config.completedAt || Date.now()) - (config.startedAt || config.createdAt || Date.now())) / 1000)),
+      averageSeconds: answered ? Math.round(totalSeconds / answered * 10) / 10 : 0,
+      ids: config.ids.slice(),
+      results: results,
+      flagged: Object.assign({}, appState.flagged),
+      categories: Object.values(categories).map(function (category) {
+        const denominator = category.correct + category.incorrect + category.omitted;
+        category.accuracyPct = denominator ? Math.round(category.correct / denominator * 1000) / 10 : 0;
+        const timedAnswers = category.correct + category.incorrect;
+        category.averageSeconds = timedAnswers ? Math.round(category.seconds / timedAnswers * 10) / 10 : 0;
+        return category;
+      }).sort(function (left, right) { return left.chapter - right.chapter; })
+    };
+  }
+
+  function archiveCompleted() {
+    flushQuestionTimes();
+    const config = ensureConfig();
+    if (!config || config.status !== 'completed') return;
+    if (deletedTests().indexOf(config.setId) >= 0) return;
+
+    const record = buildRecord(config, state());
+    const list = tests();
+    const index = list.findIndex(function (item) { return item.setId === record.setId; });
+    if (index >= 0 && JSON.stringify(list[index]) === JSON.stringify(record)) return;
+    if (index >= 0) list[index] = record;
+    else list.unshift(record);
+    saveTests(list, 'Completed test archived');
+  }
+
+  function accumulateQuestionTime() {
+    const config = ensureConfig();
+    const exam = document.getElementById('examScreen');
+    if (!config || config.status !== 'in_progress' || !exam || exam.hidden) return;
+    const appState = state();
+    if (appState.atSummary) return;
+    const index = Number(appState.index);
+    if (!Number.isInteger(index) || index < 0 || index >= config.ids.length) return;
+    const id = config.ids[index];
+    if (!id) return;
+
+    if (pendingSetId && pendingSetId !== config.setId) pendingTimes = {};
+    pendingSetId = config.setId;
+    pendingTimes[id] = (Number(pendingTimes[id]) || 0) + 1;
+    secondsSinceFlush += 1;
+    if (secondsSinceFlush >= 5) flushQuestionTimes();
+  }
+
+  function flushQuestionTimes() {
+    if (!Object.keys(pendingTimes).length) return;
+    const config = ensureConfig();
+    if (!config || config.setId !== pendingSetId) {
+      pendingTimes = {};
+      pendingSetId = null;
+      secondsSinceFlush = 0;
+      return;
+    }
+    config.questionTimes = config.questionTimes || {};
+    Object.keys(pendingTimes).forEach(function (id) {
+      config.questionTimes[id] = (Number(config.questionTimes[id]) || 0) + pendingTimes[id];
+    });
+    pendingTimes = {};
+    secondsSinceFlush = 0;
+    Store.write(CONFIG_KEY, config, { reason: 'Question timing updated' });
+  }
+
+  function analytics() {
+    const list = tests();
+    const categories = {};
+    let correct = 0;
+    let incorrect = 0;
+    let omitted = 0;
+    let seconds = 0;
+    let responses = 0;
+    const unique = new Set();
+
+    list.forEach(function (test) {
+      Object.entries(test.results || {}).forEach(function (entry) {
+        const id = entry[0];
+        const result = entry[1];
+        if (!result || result.status === 'unused') return;
+        unique.add(id);
+        if (result.status === 'correct') { correct += 1; responses += 1; }
+        else if (result.status === 'incorrect') { incorrect += 1; responses += 1; }
+        else if (result.status === 'omitted') omitted += 1;
+        seconds += Number(result.seconds) || 0;
+
+        const question = byId.get(id);
+        if (!question) return;
+        const key = String(question.chapter);
+        if (!categories[key]) {
+          categories[key] = {
+            chapter: question.chapter,
+            title: question.chapterTitle || ('Chapter ' + question.chapter),
+            attempts: 0,
+            correct: 0,
+            incorrect: 0,
+            omitted: 0,
+            seconds: 0
+          };
+        }
+        const category = categories[key];
+        category.attempts += 1;
+        if (result.status === 'correct') category.correct += 1;
+        else if (result.status === 'incorrect') category.incorrect += 1;
+        else category.omitted += 1;
+        category.seconds += Number(result.seconds) || 0;
+      });
+    });
+
+    const denominator = correct + incorrect + omitted;
+    return {
+      tests: list.length,
+      unique: unique.size,
+      responses: responses,
+      accuracy: denominator ? Math.round(correct / denominator * 1000) / 10 : 0,
+      average: responses ? Math.round(seconds / responses * 10) / 10 : 0,
+      categories: Object.values(categories).map(function (category) {
+        const denominator = category.correct + category.incorrect + category.omitted;
+        category.accuracy = denominator ? Math.round(category.correct / denominator * 1000) / 10 : 0;
+        const timedAnswers = category.correct + category.incorrect;
+        category.average = timedAnswers ? Math.round(category.seconds / timedAnswers * 10) / 10 : 0;
+        return category;
+      }).sort(function (left, right) { return left.chapter - right.chapter; })
+    };
+  }
+
+  function ensureUi() {
+    if (document.getElementById('analyticsSection')) return;
+    const target = document.querySelector('.dashboard-column-wide');
+    if (!target) return;
+
+    const wrapper = document.createElement('section');
+    wrapper.id = 'analyticsSection';
+    wrapper.className = 'analytics-section';
+    wrapper.innerHTML =
+      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">ANALYTICS</div><h3>Performance by category</h3></div></div><div id="analyticsMetrics" class="analytics-metrics"></div><div id="categoryTable"></div></article>' +
+      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">HISTORY</div><h3>Previous tests</h3><p class="field-help">Completed sets are saved for detailed review and included in Drive backup.</p></div></div><div id="testHistory"></div></article>';
+    target.appendChild(wrapper);
+
+    const modal = document.createElement('div');
+    modal.id = 'testReviewModal';
+    modal.className = 'history-modal';
+    modal.hidden = true;
+    modal.innerHTML = '<div class="history-dialog" role="dialog" aria-modal="true" aria-labelledby="historyReviewTitle"><button id="closeHistoryModal" class="history-close" type="button" aria-label="Close review">×</button><div id="historyDetail"></div></div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', function (event) { if (event.target === modal) modal.hidden = true; });
+    document.getElementById('closeHistoryModal').addEventListener('click', function () { modal.hidden = true; });
+  }
+
+  function deleteSavedTest(id) {
+    const list = tests();
+    const test = list.find(function (item) { return item.setId === id; });
+    if (!test || !confirm('Delete this saved test? A recoverable backup will be created first.')) return;
+
+    if (window.BoardsMaintenance && window.BoardsMaintenance.backupNow) {
+      const backupId = window.BoardsMaintenance.backupNow('Before deleting a saved test', {
+        type: 'delete-test', setId: id, total: test.total, scorePct: test.scorePct
+      });
+      if (!backupId) {
+        alert('Delete canceled because a recovery backup could not be saved.');
+        return;
+      }
+    }
+
+    const tombstones = deletedTests();
+    if (tombstones.indexOf(id) < 0) tombstones.unshift(id);
+    Store.write(DELETED_KEY, tombstones.slice(0, Config.limits.deletedTestTombstones), { reason: 'Saved test deleted' });
+    saveTests(list.filter(function (item) { return item.setId !== id; }), 'Saved test deleted');
+
+    const config = ensureConfig();
+    if (config && config.setId === id && config.status === 'completed') {
+      Store.remove(CONFIG_KEY, { reason: 'Deleted completed active set' });
+    }
+    Store.milestone('Saved test deleted', { setId: id });
+    render();
+  }
+
+  function answerText(question, letter) {
+    const index = question.choiceLetters.indexOf(letter);
+    return index >= 0 ? question.choices[index] : '';
+  }
+
+  function showReview(id) {
+    const test = tests().find(function (item) { return item.setId === id; });
+    if (!test) return;
+    const modal = document.getElementById('testReviewModal');
+    const detail = document.getElementById('historyDetail');
+
+    const categoryRows = (test.categories || []).map(function (category) {
+      return '<tr><td>Ch ' + category.chapter + ' — ' + escapeHtml(category.title) + '</td><td>' + category.total + '</td><td>' + category.correct + '</td><td>' + category.accuracyPct + '%</td><td>' + formatSeconds(category.averageSeconds) + '</td></tr>';
+    }).join('');
+
+    const questions = test.ids.map(function (questionId, index) {
+      const question = byId.get(questionId);
+      const result = test.results[questionId] || {};
+      if (!question) return '';
+      const selected = result.selectedLetter || 'Omitted';
+      const selectedText = result.selectedLetter ? answerText(question, result.selectedLetter) : '';
+      const correctText = answerText(question, question.correctLetter);
+      return '<details class="review-question ' + escapeHtml(result.status) + '"><summary>Question ' + (index + 1) + ' · Ch ' + question.chapter + ' Q' + question.qnum + ' · ' + escapeHtml(result.status) + ' · ' + formatSeconds(result.seconds) + '</summary>' +
+        '<p>' + escapeHtml(question.question) + '</p>' +
+        '<p><strong>Your answer:</strong> ' + escapeHtml(selected) + (selectedText ? ' — ' + escapeHtml(selectedText) : '') + '</p>' +
+        '<p><strong>Correct answer:</strong> ' + escapeHtml(question.correctLetter) + ' — ' + escapeHtml(correctText) + '</p>' +
+        '<p class="review-explanation">' + escapeHtml(question.explanation || '') + '</p></details>';
+    }).join('');
+
+    detail.innerHTML = '<h2 id="historyReviewTitle">Saved test review</h2><div class="review-summary"><strong>' + test.scorePct + '%</strong><span>' + test.correct + ' correct · ' + test.incorrect + ' incorrect · ' + test.omitted + ' omitted</span><span>' + formatSeconds(test.averageSeconds) + ' average per answered question</span><span>' + formatDate(test.completedAt) + '</span></div><h3>Category breakdown</h3><div class="review-table-wrap"><table><thead><tr><th>Category</th><th>Completed</th><th>Correct</th><th>Accuracy</th><th>Avg time</th></tr></thead><tbody>' + categoryRows + '</tbody></table></div><h3>Question review</h3>' + questions;
+    modal.hidden = false;
+  }
+
+  function render() {
+    ensureUi();
+    archiveCompleted();
+    const metrics = analytics();
+    const metricContainer = document.getElementById('analyticsMetrics');
+    const categoryContainer = document.getElementById('categoryTable');
+    const historyContainer = document.getElementById('testHistory');
+    if (!metricContainer || !categoryContainer || !historyContainer) return;
+
+    metricContainer.innerHTML = [
+      ['Completed tests', metrics.tests],
+      ['Unique questions completed', metrics.unique],
+      ['Total answered', metrics.responses],
+      ['Overall accuracy', metrics.accuracy + '%'],
+      ['Average time / question', formatSeconds(metrics.average)]
+    ].map(function (item) {
+      return '<div class="analytics-metric"><strong>' + item[1] + '</strong><span>' + item[0] + '</span></div>';
+    }).join('');
+
+    categoryContainer.innerHTML = metrics.categories.length
+      ? '<div class="category-table"><div class="category-row category-head"><span>Category</span><span>Completed</span><span>Correct</span><span>Accuracy</span><span>Avg time</span></div>' + metrics.categories.map(function (category) {
+        return '<div class="category-row"><span><strong>Ch ' + category.chapter + '</strong> ' + escapeHtml(category.title) + '</span><span>' + category.attempts + '</span><span>' + category.correct + '</span><span>' + category.accuracy + '%</span><span>' + formatSeconds(category.average) + '</span></div>';
+      }).join('') + '</div>'
+      : '<div class="analytics-empty">Complete a test or tutor set to begin building category analytics.</div>';
+
+    const list = tests();
+    historyContainer.innerHTML = list.length ? list.map(function (test) {
+      return '<div class="history-row"><div><strong>' + test.total + ' questions · ' + (test.mode === 'test' ? 'Test' : 'Tutor') + '</strong><span>' + formatDate(test.completedAt) + '</span></div><div class="history-score">' + test.scorePct + '%</div><div class="history-meta">' + test.correct + ' correct · ' + test.incorrect + ' incorrect · ' + test.omitted + ' omitted<br>' + formatSeconds(test.averageSeconds) + ' / question</div><div class="history-actions"><button type="button" class="secondary-button review-history" data-id="' + escapeHtml(test.setId) + '">Review</button><button type="button" class="secondary-button delete-history" data-id="' + escapeHtml(test.setId) + '">Delete</button></div></div>';
+    }).join('') : '<div class="analytics-empty">No completed tests saved yet.</div>';
+
+    historyContainer.querySelectorAll('.review-history').forEach(function (button) {
+      button.addEventListener('click', function () { showReview(button.getAttribute('data-id')); });
+    });
+    historyContainer.querySelectorAll('.delete-history').forEach(function (button) {
+      button.addEventListener('click', function () { deleteSavedTest(button.getAttribute('data-id')); });
+    });
+  }
+
+  function scheduleRender() {
+    clearTimeout(renderTimer);
+    renderTimer = setTimeout(render, 100);
+  }
+
+  function init() {
+    ensureUi();
+    render();
+    setInterval(accumulateQuestionTime, 1000);
+    Store.subscribe(function (change) {
+      if (change.key === CONFIG_KEY && change.reason === 'Question timing updated') return;
+      scheduleRender();
+    });
+    window.addEventListener('message', function () {
+      flushQuestionTimes();
+      scheduleRender();
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flushQuestionTimes();
+    });
+    window.addEventListener('beforeunload', flushQuestionTimes);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.BoardsAnalytics = Object.freeze({
+    render: render,
+    archiveCompleted: archiveCompleted,
+    flushQuestionTimes: flushQuestionTimes,
+    deleteSavedTest: deleteSavedTest
+  });
 })();
