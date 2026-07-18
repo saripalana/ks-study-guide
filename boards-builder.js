@@ -5,16 +5,24 @@
   if (!C || !C.fullBank || !C.fullBank.length) return;
 
   const SETTINGS_KEY = C.KEY.settings;
-  const allChapters = Array.from(new Map(C.fullBank.map(function (q) {
-    return [String(q.chapter), {
-      value: String(q.chapter),
-      chapter: q.chapter,
-      title: q.chapterTitle || ('Chapter ' + q.chapter)
+  const allChapters = Array.from(new Map(C.fullBank.map(function (question) {
+    return [String(question.chapter), {
+      value: String(question.chapter),
+      chapter: question.chapter,
+      title: question.chapterTitle || ('Chapter ' + question.chapter)
     }];
-  })).values()).sort(function (a, b) { return Number(a.chapter) - Number(b.chapter); });
+  })).values()).sort(function (left, right) { return Number(left.chapter) - Number(right.chapter); });
+
+  const sourceDefinitions = [
+    { value: 'original', title: 'Original unchanged', copy: 'Imported bank material with no AI content changes.' },
+    { value: 'ai-revised', title: 'AI-revised originals', copy: 'Original cards with a reviewed, reversible overlay.' },
+    { value: 'ai-created', title: 'AI-created supplements', copy: 'Separate personal cards created by ChatGPT.' },
+    { value: 'user-created', title: 'User-created supplements', copy: 'Separate personal cards created by you.' }
+  ];
 
   let selectedPool = 'all';
   let selectedChapters = new Set(allChapters.map(function (item) { return item.value; }));
+  let selectedSources = new Set(sourceDefinitions.map(function (item) { return item.value; }));
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
@@ -22,35 +30,51 @@
     });
   }
 
-  function currentStatus(q) {
-    return C.statusForQuestion(q, C.appState(), C.historyState(), C.activeConfig());
+  function questionSource(question) {
+    return question && question.provenance && question.provenance.studySource || 'original';
   }
 
-  function matchesPool(q, pool) {
+  function currentStatus(question) {
+    return C.statusForQuestion(question, C.appState(), C.historyState(), C.activeConfig());
+  }
+
+  function matchesPool(question, pool) {
     const state = C.appState();
-    const status = currentStatus(q);
+    const status = currentStatus(question);
     if (pool === 'new') return status === 'unused';
     if (pool === 'used') return status !== 'unused';
     if (pool === 'incorrect') return status === 'incorrect' || status === 'omitted';
-    if (pool === 'flagged') return !!state.flagged[q.id];
+    if (pool === 'flagged') return !!state.flagged[question.id];
     return true;
   }
 
+  function matchesBaseFilters(question) {
+    return selectedChapters.has(String(question.chapter)) && selectedSources.has(questionSource(question));
+  }
+
   function eligibleQuestions() {
-    return C.fullBank.filter(function (q) {
-      return selectedChapters.has(String(q.chapter)) && matchesPool(q, selectedPool);
+    return C.fullBank.filter(function (question) {
+      return matchesBaseFilters(question) && matchesPool(question, selectedPool);
     });
   }
 
   function poolCount(pool) {
-    return C.fullBank.reduce(function (count, q) {
-      return count + (selectedChapters.has(String(q.chapter)) && matchesPool(q, pool) ? 1 : 0);
+    return C.fullBank.reduce(function (count, question) {
+      return count + (matchesBaseFilters(question) && matchesPool(question, pool) ? 1 : 0);
     }, 0);
   }
 
   function subjectPoolCount(chapter) {
-    return C.fullBank.reduce(function (count, q) {
-      return count + (String(q.chapter) === chapter && matchesPool(q, selectedPool) ? 1 : 0);
+    return C.fullBank.reduce(function (count, question) {
+      const included = String(question.chapter) === chapter && selectedSources.has(questionSource(question)) && matchesPool(question, selectedPool);
+      return count + (included ? 1 : 0);
+    }, 0);
+  }
+
+  function sourcePoolCount(source) {
+    return C.fullBank.reduce(function (count, question) {
+      const included = questionSource(question) === source && selectedChapters.has(String(question.chapter)) && matchesPool(question, selectedPool);
+      return count + (included ? 1 : 0);
     }, 0);
   }
 
@@ -63,13 +87,19 @@
       const restored = settings.chapters.map(String).filter(function (value) { return allowed.has(value); });
       if (restored.length) selectedChapters = new Set(restored);
     }
+    if (Array.isArray(settings.sources)) {
+      const allowed = new Set(sourceDefinitions.map(function (item) { return item.value; }));
+      const restored = settings.sources.map(String).filter(function (value) { return allowed.has(value); });
+      if (restored.length) selectedSources = new Set(restored);
+    }
   }
 
   function saveBuilderSettings() {
     const previous = C.readJson(SETTINGS_KEY, {}) || {};
     previous.pool = selectedPool;
     previous.chapters = Array.from(selectedChapters);
-    C.writeJson(SETTINGS_KEY, previous);
+    previous.sources = Array.from(selectedSources);
+    C.writeJson(SETTINGS_KEY, previous, { reason: 'Practice builder settings updated' });
   }
 
   function renderPoolButtons() {
@@ -105,20 +135,51 @@
     });
   }
 
+  function renderSources() {
+    const grid = document.getElementById('sourceSelectionGrid');
+    if (!grid) return;
+    grid.innerHTML = sourceDefinitions.map(function (item) {
+      const checked = selectedSources.has(item.value);
+      return '<label class="subject-option' + (checked ? ' selected' : '') + '">' +
+        '<input type="checkbox" value="' + escapeHtml(item.value) + '"' + (checked ? ' checked' : '') + '>' +
+        '<span class="subject-check" aria-hidden="true"></span>' +
+        '<span class="subject-copy"><strong>' + escapeHtml(item.title) + '</strong><span>' + escapeHtml(item.copy) + '</span></span>' +
+        '<span class="subject-count">' + sourcePoolCount(item.value) + '</span>' +
+        '</label>';
+    }).join('');
+
+    grid.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        if (checkbox.checked) selectedSources.add(checkbox.value);
+        else selectedSources.delete(checkbox.value);
+        saveBuilderSettings();
+        updateBuilder();
+      });
+    });
+  }
+
   function updateBuilder() {
     renderPoolButtons();
     renderSubjects();
+    renderSources();
 
     const eligible = eligibleQuestions();
     const countInput = document.getElementById('questionCount');
     const rangeText = document.getElementById('questionRangeText');
     const startButton = document.getElementById('startNewSetBtn');
     const subjectSummary = document.getElementById('subjectSelectionSummary');
+    const sourceSummary = document.getElementById('sourceSelectionSummary');
     const warning = document.getElementById('builderWarning');
 
-    const subjectCount = selectedChapters.size;
     if (subjectSummary) {
-      subjectSummary.textContent = subjectCount === allChapters.length ? 'All subjects selected' : subjectCount + ' of ' + allChapters.length + ' subjects selected';
+      subjectSummary.textContent = selectedChapters.size === allChapters.length
+        ? 'All subjects selected'
+        : selectedChapters.size + ' of ' + allChapters.length + ' subjects selected';
+    }
+    if (sourceSummary) {
+      sourceSummary.textContent = selectedSources.size === sourceDefinitions.length
+        ? 'All content sources selected'
+        : selectedSources.size + ' of ' + sourceDefinitions.length + ' sources selected';
     }
 
     if (rangeText) rangeText.textContent = 'of ' + eligible.length + ' eligible questions';
@@ -128,10 +189,14 @@
       if (eligible.length && current > eligible.length) countInput.value = String(eligible.length);
     }
 
-    const canStart = eligible.length > 0 && selectedChapters.size > 0;
+    const canStart = eligible.length > 0 && selectedChapters.size > 0 && selectedSources.size > 0;
     if (startButton) startButton.disabled = !canStart;
     if (warning) {
-      warning.textContent = canStart ? '' : (selectedChapters.size ? 'No questions match this subject and question-pool combination.' : 'Select at least one subject.');
+      warning.textContent = canStart ? '' : (!selectedChapters.size
+        ? 'Select at least one subject.'
+        : !selectedSources.size
+          ? 'Select at least one content source.'
+          : 'No questions match this subject, source, and question-pool combination.');
       warning.hidden = canStart;
     }
   }
@@ -153,6 +218,11 @@
         '<div id="subjectSelectionGrid" class="subject-selection-grid"></div>' +
       '</div>' +
       '<div class="form-section builder-section">' +
+        '<div class="builder-heading-row"><div><div class="field-label">Content sources</div><div id="sourceSelectionSummary" class="builder-summary"></div></div>' +
+        '<div class="builder-mini-actions"><button type="button" id="selectAllSources" class="builder-link-button">Select all</button><button type="button" id="clearAllSources" class="builder-link-button">Clear</button></div></div>' +
+        '<div id="sourceSelectionGrid" class="subject-selection-grid"></div>' +
+      '</div>' +
+      '<div class="form-section builder-section">' +
         '<div class="field-label">Question pool</div>' +
         '<div id="questionPoolOptions" class="pool-grid">' +
           '<button type="button" class="pool-card" data-pool="all"><span class="pool-title">All / Random</span><span class="pool-copy">Randomly sample from every eligible question.</span><strong class="pool-count">0</strong></button>' +
@@ -172,6 +242,16 @@
     });
     document.getElementById('clearAllSubjects').addEventListener('click', function () {
       selectedChapters.clear();
+      saveBuilderSettings();
+      updateBuilder();
+    });
+    document.getElementById('selectAllSources').addEventListener('click', function () {
+      selectedSources = new Set(sourceDefinitions.map(function (item) { return item.value; }));
+      saveBuilderSettings();
+      updateBuilder();
+    });
+    document.getElementById('clearAllSources').addEventListener('click', function () {
+      selectedSources.clear();
       saveBuilderSettings();
       updateBuilder();
     });
@@ -202,7 +282,7 @@
       const countInput = document.getElementById('questionCount');
       const requested = C.clampInteger(countInput.value, Math.min(40, eligible.length), 1, eligible.length);
       countInput.value = String(requested);
-      const ids = C.shuffle(eligible).slice(0, requested).map(function (q) { return q.id; });
+      const ids = C.shuffle(eligible).slice(0, requested).map(function (question) { return question.id; });
 
       const modeButton = document.querySelector('#modeOptions .option-card.selected');
       const mode = modeButton && modeButton.getAttribute('data-mode') === 'quiz' ? 'quiz' : 'test';
@@ -217,7 +297,10 @@
       const config = C.createConfig(ids, mode, timed, durationSeconds, kind);
       config.pool = selectedPool;
       config.chapters = Array.from(selectedChapters);
-      C.writeJson(C.KEY.config, config);
+      config.sources = Array.from(selectedSources);
+      config.timingPrecision = 'milliseconds';
+      config.questionTiming = {};
+      C.writeJson(C.KEY.config, config, { reason: 'Practice set source and timing settings saved' });
 
       const previous = C.readJson(SETTINGS_KEY, {}) || {};
       previous.count = requested;
@@ -226,7 +309,8 @@
       previous.durationSeconds = durationSeconds;
       previous.pool = selectedPool;
       previous.chapters = Array.from(selectedChapters);
-      C.writeJson(SETTINGS_KEY, previous);
+      previous.sources = Array.from(selectedSources);
+      C.writeJson(SETTINGS_KEY, previous, { reason: 'Practice builder settings saved' });
       window.BoardsExam.launch();
     });
   }
@@ -243,7 +327,6 @@
     });
     const dashboard = document.getElementById('dashboardScreen');
     if (dashboard) observer.observe(dashboard, { childList: true, subtree: true });
-
     window.addEventListener('message', function () { setTimeout(updateBuilder, 200); });
   }
 
