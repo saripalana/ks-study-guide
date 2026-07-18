@@ -86,15 +86,25 @@
     };
   }
 
-  function buildPerformancePackage(master) {
+  function buildPerformancePackage(master, previous) {
     const state = C.appState();
     const history = C.historyState();
     const config = C.activeConfig();
     const tests = Store.read(KEYS.tests, []);
+    const prior = previous && previous.questions && typeof previous.questions === 'object' ? previous.questions : {};
+    const processed = new Set(Array.isArray(previous && previous.processedTestIds) ? previous.processedTestIds : []);
     const byId = {};
 
     C.fullBank.forEach(function (question) {
       const item = emptyPerformance(question);
+      const old = prior[question.id] || {};
+      item.attempts = Math.max(0, Number(old.attempts) || 0);
+      item.correct = Math.max(0, Number(old.correct) || 0);
+      item.incorrect = Math.max(0, Number(old.incorrect) || 0);
+      item.omitted = Math.max(0, Number(old.omitted) || 0);
+      item.totalSeconds = Math.max(0, Number(old.totalSeconds) || 0);
+      item.lastAttemptAt = Number(old.lastAttemptAt) || null;
+      item.lastSelectedLetter = old.lastSelectedLetter || null;
       item.latestStatus = C.statusForQuestion(question, state, history, config);
       item.flagged = !!state.flagged[question.id];
       byId[question.id] = item;
@@ -102,6 +112,8 @@
 
     if (Array.isArray(tests)) {
       tests.forEach(function (test) {
+        const setId = String(test && test.setId || '');
+        if (!setId || processed.has(setId)) return;
         Object.entries(test.results || {}).forEach(function (entry) {
           const id = entry[0];
           const result = entry[1] || {};
@@ -117,6 +129,7 @@
             item.lastSelectedLetter = result.selectedLetter || null;
           }
         });
+        processed.add(setId);
       });
     }
 
@@ -134,9 +147,11 @@
       sourceBuild: Config.build,
       bankHash: sourceMaster.bankHash,
       savedTestCount: Array.isArray(tests) ? tests.length : 0,
+      historicalTestCount: processed.size,
+      processedTestIds: Array.from(processed).sort(),
       questions: byId
     };
-    payload.performanceHash = hashValue(payload.questions);
+    payload.performanceHash = hashValue({ questions: payload.questions, processedTestIds: payload.processedTestIds });
     return payload;
   }
 
@@ -220,7 +235,7 @@
         return;
       }
       const oldQuestion = before.get(id);
-      const fields = Object.keys(question).filter(function (field) {
+      const fields = Array.from(new Set(Object.keys(oldQuestion).concat(Object.keys(question)))).filter(function (field) {
         return stableStringify(oldQuestion[field]) !== stableStringify(question[field]);
       });
       if (fields.length) changed.push({ id: id, fields: fields });
