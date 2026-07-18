@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://saripalana.github.io/ks-study-guide/schemas/supplemental-card.schema.json",
+  "title": "Personal ABPN Supplemental Card",
+  "type": "object",
+  "required": [
+    "schemaVersion", "bankId", "collectionId", "id", "contentVersion", "status",
+    "cardType", "chapter", "chapterTitle", "qnum", "question", "choices",
+    "choiceLetters", "correctLetter", "answerText", "explanation", "provenance"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "bankId": { "type": "string", "minLength": 1 },
+    "collectionId": { "enum": ["ai-created", "user-created"] },
+    "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]*$" },
+    "contentVersion": { "type": "integer", "minimum": 1 },
+    "status": { "enum": ["draft", "approved", "active", "retired"] },
+    "cardType": { "enum": ["single-best-answer"] },
+    "chapter": { "type": "integer", "minimum": 1 },
+    "chapterTitle": { "type": "string", "minLength": 1 },
+    "qnum": { "type": "integer", "minimum": 1 },
+    "question": { "type": "string", "minLength": 1 },
+    "choices": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+    "choiceLetters": { "type": "array", "minItems": 2, "items": { "type": "string", "minLength": 1 } },
+    "correctLetter": { "type": "string", "minLength": 1 },
+    "answerText": { "type": "string" },
+    "explanation": { "type": "string", "minLength": 1 },
+    "categories": { "type": "array" },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "difficulty": { "type": ["string", "null"] },
+    "learningObjectives": { "type": "array", "items": { "type": "string" } },
+    "provenance": {
+      "type": "object",
+      "required": ["class", "reviewStatus", "personalSupplement", "originalBankMaterial"],
+      "properties": {
+        "class": { "enum": ["ai-created", "user-created"] },
+        "creator": { "type": "string", "minLength": 1 },
+        "requestedBy": { "type": "string" },
+        "requestId": { "type": "string" },
+        "createdAt": { "type": ["integer", "string", "null"] },
+        "reviewStatus": { "enum": ["draft", "approved", "active", "retired"] },
+        "personalSupplement": { "const": true },
+        "originalBankMaterial": { "const": false }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
