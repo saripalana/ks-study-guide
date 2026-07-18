@@ -19,4 +19,15 @@ jobs:
         with:
           node-version: '20'
       - name: Run static validation
-        run: node scripts/validate.mjs
+        run: |
+          set +e
+          node scripts/validate.mjs 2>&1 | tee validation-report.txt
+          status=${PIPESTATUS[0]}
+          exit $status
+      - name: Upload validation report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: validation-report.txt
+          retention-days: 7
