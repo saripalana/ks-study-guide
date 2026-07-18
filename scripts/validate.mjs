@@ -18,10 +18,10 @@ for (const asset of localAssets) {
 
 const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
-  'boards-dashboard.js', 'boards-exam-v2.js', 'boards-analytics.js', 'boards-builder.js',
-  'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
+  'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js', 'boards-analytics.js',
+  'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
   'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-drive-backup.js',
-  'boards-question-vault.js', 'boards-init.js'
+  'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -86,7 +86,8 @@ for (const file of publicFiles) {
 }
 
 const driveCode = [
-  read('boards-drive-backup.js'), read('boards-visible-drive-client.js'), read('boards-question-vault.js'), read('boards-config.js')
+  read('boards-drive-backup.js'), read('boards-visible-drive-client.js'), read('boards-question-vault.js'),
+  read('boards-hard-reset.js'), read('boards-config.js')
 ].join('\n');
 const scopeMatches = new Set(driveCode.match(/https:\/\/www\.googleapis\.com\/auth\/drive(?:\.[A-Za-z0-9._-]+)?/g) || []);
 const allowedScopes = new Set([
@@ -103,21 +104,40 @@ if (!configCode.includes("stagingBranch: 'question-bank-staging'")) fail('Questi
 if (!configCode.includes("datasetId: 'psychiatry-board-question-bank'")) fail('Question-bank dataset identity is missing.');
 if (!configCode.includes("tests: 'Test History'")) fail('Append-only Test History folder configuration is missing.');
 if (!configCode.includes("testIndex: 'completed-tests-index.json'")) fail('Completed-test archive index configuration is missing.');
+if (!configCode.includes("date: '2026-09-08'")) fail('The configured ABPN exam date is missing or incorrect.');
+if (!configCode.includes("confirmationPhrase: 'RESET ALL STUDY DATA'")) fail('The absolute-reset confirmation phrase is missing.');
+if (configCode.includes("'thedude9'")) fail('The reset code must not be stored as plaintext in configuration.');
 
 for (const registeredModule of [
   'boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js',
-  'boards-drive-backup.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-question-vault.js'
+  'boards-drive-backup.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js',
+  'boards-question-vault.js', 'boards-hard-reset.js'
 ]) {
   const content = read(registeredModule);
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
 }
 
 const vaultCode = read('boards-question-vault.js');
-for (const safeguard of ['question-bank-staging', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
+for (const safeguard of ['Vault.stagingBranch', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
   if (!vaultCode.includes(safeguard)) fail(`Question Vault safeguard is missing: ${safeguard}`);
 }
 if (vaultCode.includes('deleteFile(') || vaultCode.includes("method: 'DELETE'")) {
   fail('Question Vault must not expose file-deletion behavior.');
+}
+
+const hardResetCode = read('boards-hard-reset.js');
+for (const safeguard of [
+  'Before absolute hard reset', 'downloadRecovery', 'archiveHiddenBackup', 'archiveVisibleStudyData',
+  'originalQuestionBankPreserved: true', 'historicalFilesPreserved: true', 'publishEmptyCloudState'
+]) {
+  if (!hardResetCode.includes(safeguard)) fail(`Absolute-reset safeguard is missing: ${safeguard}`);
+}
+if (hardResetCode.includes("'thedude9'")) fail('The reset code must not be embedded as plaintext in the reset module.');
+if (hardResetCode.includes("method: 'DELETE'")) fail('Absolute reset must preserve cloud archives rather than deleting them.');
+
+const countdownCode = read('boards-exam-countdown.js');
+for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'browser’s local time']) {
+  if (!countdownCode.includes(capability)) fail(`Exam countdown capability is missing: ${capability}`);
 }
 
 const modelCode = read('boards-question-bank-model.js');
@@ -152,4 +172,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Validated ${localAssets.length} local HTML assets and ${javascriptFiles.length} JavaScript files.`);
-console.log('Security, question governance, and architecture checks passed.');
+console.log('Security, reset safety, countdown, question governance, and architecture checks passed.');
