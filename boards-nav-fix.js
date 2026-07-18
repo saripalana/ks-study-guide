@@ -1,96 +1,54 @@
-(function () {
-  'use strict';
-
-  const APP_KEY = 'kaplanBoardPrepState';
-  const CONFIG_KEY = 'ksBoardsActiveSetv3';
-  const frame = document.getElementById('examFrame');
-
-  function readJson(key, fallback) {
-    try {
-      const value = JSON.parse(localStorage.getItem(key) || 'null');
-      return value === null ? fallback : value;
-    } catch (error) {
-      return fallback;
-    }
-  }
-
-  function refreshNavigator() {
-    if (!frame || !frame.contentDocument) return;
-    const doc = frame.contentDocument;
-    const qnav = doc.getElementById('qnav');
-    if (!qnav) return;
-
-    const config = readJson(CONFIG_KEY, null);
-    const state = readJson(APP_KEY, {});
-    if (!config || !Array.isArray(config.ids)) return;
-
-    state.answered = state.answered || {};
-    state.testAnswers = state.testAnswers || {};
-    state.testSubmitted = state.testSubmitted || {};
-    state.flagged = state.flagged || {};
-
-    const submitted = !!state.testSubmitted['all|study'];
-    const questionMap = new Map((window.QUESTIONS || []).map(function (q) { return [q.id, q]; }));
-    let answeredCount = 0;
-    let correctCount = 0;
-    let incorrectCount = 0;
-
-    qnav.querySelectorAll('.qnav-pill').forEach(function (pill, index) {
-      const id = config.ids[index];
-      const q = questionMap.get(id);
-      let status = 'unanswered';
-
-      if (config.mode === 'quiz') {
-        const answer = state.answered[id];
-        if (answer) status = answer.correct ? 'correct' : 'incorrect';
-      } else if (submitted) {
-        const selected = state.testAnswers[id];
-        status = !selected ? 'omitted' : (q && selected === q.correctLetter ? 'correct' : 'incorrect');
-      } else if (state.testAnswers[id]) {
-        status = 'answered';
-      }
-
-      pill.classList.toggle('q-answered', status === 'answered');
-      pill.classList.toggle('q-correct', status === 'correct');
-      pill.classList.toggle('q-incorrect', status === 'incorrect');
-      pill.classList.toggle('q-omitted', status === 'omitted');
-
-      if (status !== 'unanswered') answeredCount += 1;
-      if (status === 'correct') correctCount += 1;
-      if (status === 'incorrect' || status === 'omitted') incorrectCount += 1;
-    });
-
-    const answered = doc.getElementById('boardsAnsweredCount');
-    const remaining = doc.getElementById('boardsRemainingCount');
-    const correct = doc.getElementById('boardsCorrectCount');
-    const incorrect = doc.getElementById('boardsIncorrectCount');
-    if (answered) answered.textContent = String(answeredCount);
-    if (remaining) remaining.textContent = String(Math.max(0, config.ids.length - answeredCount));
-    if (correct) correct.textContent = String(correctCount);
-    if (incorrect) incorrect.textContent = String(incorrectCount);
-  }
-
-  function attach() {
-    if (!frame || !frame.contentDocument) return;
-    const doc = frame.contentDocument;
-    if (!doc.body || doc.body.dataset.boardsNavFixAttached === 'true') return;
-    doc.body.dataset.boardsNavFixAttached = 'true';
-
-    doc.addEventListener('click', function () {
-      setTimeout(refreshNavigator, 0);
-      setTimeout(refreshNavigator, 80);
-    }, true);
-
-    const observer = new MutationObserver(function () {
-      setTimeout(refreshNavigator, 0);
-    });
-    observer.observe(doc.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    refreshNavigator();
-  }
-
-  if (frame) frame.addEventListener('load', function () { setTimeout(attach, 150); });
-  setInterval(function () {
-    attach();
-    refreshNavigator();
-  }, 500);
+(function(){
+'use strict';
+const C=window.BoardsCore,frame=document.getElementById('examFrame');
+if(!C)return;
+const APP=C.KEY.app,CONFIG=C.KEY.config,HISTORY=C.KEY.history,TESTS='ksBoardsTestsV3',DELETED='ksBoardsDeletedTestsV3',BACKUPS='ksBoardsBackupsV1',MAX=12;
+let selecting=false,selected=new Set();
+const read=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k)||'null');return v===null?d:v}catch(e){return d}};
+const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const date=t=>new Date(t).toLocaleString([],{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});
+function refreshNav(){
+ if(!frame||!frame.contentDocument)return;const d=frame.contentDocument,qnav=d.getElementById('qnav');if(!qnav)return;
+ const cfg=read(CONFIG,null),s=read(APP,{});if(!cfg||!Array.isArray(cfg.ids))return;
+ s.answered=s.answered||{};s.testAnswers=s.testAnswers||{};s.testSubmitted=s.testSubmitted||{};
+ const submitted=!!s.testSubmitted['all|study'],map=C.byId;let a=0,c=0,w=0;
+ qnav.querySelectorAll('.qnav-pill').forEach((pill,i)=>{const id=cfg.ids[i],q=map.get(id);let st='unanswered';
+  if(cfg.mode==='quiz'){const x=s.answered[id];if(x)st=x.correct?'correct':'incorrect'}
+  else if(submitted){const x=s.testAnswers[id];st=!x?'omitted':(q&&x===q.correctLetter?'correct':'incorrect')}
+  else if(s.testAnswers[id])st='answered';
+  pill.classList.toggle('q-answered',st==='answered');pill.classList.toggle('q-correct',st==='correct');pill.classList.toggle('q-incorrect',st==='incorrect');pill.classList.toggle('q-omitted',st==='omitted');
+  if(st!=='unanswered')a++;if(st==='correct')c++;if(st==='incorrect'||st==='omitted')w++;
+ });
+ const set=(id,v)=>{const e=d.getElementById(id);if(e)e.textContent=String(v)};set('boardsAnsweredCount',a);set('boardsRemainingCount',Math.max(0,cfg.ids.length-a));set('boardsCorrectCount',c);set('boardsIncorrectCount',w);
+}
+function attachNav(){if(!frame||!frame.contentDocument)return;const d=frame.contentDocument;if(!d.body||d.body.dataset.navMaint==='1')return;d.body.dataset.navMaint='1';d.addEventListener('click',()=>{setTimeout(refreshNav,0);setTimeout(refreshNav,80)},true);new MutationObserver(()=>setTimeout(refreshNav,0)).observe(d.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});refreshNav()}
+function keys(){const out=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k!==BACKUPS&&(k===APP||k.indexOf('ksBoards')===0))out.push(k)}return out}
+function backupList(){const x=read(BACKUPS,[]);return Array.isArray(x)?x:[]}
+function saveBackups(x){let a=x.slice(0,MAX);while(a.length){try{write(BACKUPS,a);return true}catch(e){a.pop()}}return false}
+function backupNow(reason,meta){const snap={};keys().forEach(k=>snap[k]=localStorage.getItem(k));const b={id:'backup-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),createdAt:Date.now(),reason:reason||'Manual backup',metadata:meta||{},snapshot:snap};const list=backupList();list.unshift(b);const ok=saveBackups(list);renderBackups();return ok?b.id:null}
+function restoreBackup(id){const b=backupList().find(x=>x.id===id);if(!b||!confirm('Restore this backup? A backup of the current state will be created first.'))return;backupNow('Before restoring an older backup',{type:'pre-restore',restoring:id});const keep=backupList();keys().forEach(k=>localStorage.removeItem(k));Object.entries(b.snapshot||{}).forEach(([k,v])=>v==null?localStorage.removeItem(k):localStorage.setItem(k,v));write(BACKUPS,keep);location.reload()}
+function downloadBackup(id){const b=backupList().find(x=>x.id===id);if(!b)return;const u=URL.createObjectURL(new Blob([JSON.stringify(b,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=u;a.download='psychiatry-board-backup-'+new Date(b.createdAt).toISOString().replace(/[:.]/g,'-')+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+function deleteBackup(id){if(!confirm('Delete this recovery backup permanently?'))return;saveBackups(backupList().filter(x=>x.id!==id));renderBackups()}
+function resetIds(ids,label){const list=Array.from(new Set(ids)).filter(id=>C.byId.has(id));if(!list.length)return;const all=list.length===C.fullBank.length;if(!confirm((all?'Reset progress for the entire question bank?':'Reset progress for '+list.length+' selected question'+(list.length===1?'':'s')+'?')+' Saved Previous tests will remain. A recovery backup will be created first.'))return;
+ if(!backupNow('Before '+label,{type:'question-reset',count:list.length,ids:list})){alert('Reset canceled because a recovery backup could not be saved.');return}
+ const set=new Set(list),s=read(APP,{});s.answered=s.answered||{};s.testAnswers=s.testAnswers||{};s.flagged=s.flagged||{};s.missed=s.missed||{};list.forEach(id=>{delete s.answered[id];delete s.testAnswers[id];delete s.flagged[id];delete s.missed[id]});s.testSubmitted={};s.atSummary=false;s.index=0;s.view='study';write(APP,s);
+ const h=read(HISTORY,{});list.forEach(id=>delete h[id]);write(HISTORY,h);
+ const cfg=read(CONFIG,null);if(cfg&&Array.isArray(cfg.ids)&&cfg.ids.some(id=>set.has(id))){if(all||cfg.status==='completed')localStorage.removeItem(CONFIG);else{cfg.questionTimes=cfg.questionTimes||{};list.forEach(id=>delete cfg.questionTimes[id]);cfg.status='in_progress';delete cfg.completedAt;write(CONFIG,cfg)}}
+ selected.clear();selecting=false;refreshAll()
+}
+function qid(tile){const x=tile.getAttribute('data-question-id');if(x&&C.byId.has(x))return x;const q=C.fullBank[Number(tile.textContent.trim())-1];return q&&q.id}
+function syncTiles(){const g=document.getElementById('bankGrid');if(!g)return;g.classList.toggle('reset-selection-mode',selecting);g.querySelectorAll('.bank-tile').forEach(t=>{const id=qid(t);if(id)t.dataset.questionId=id;t.classList.toggle('reset-selected',!!id&&selected.has(id));if(selecting)t.setAttribute('aria-pressed',selected.has(id)?'true':'false');else t.removeAttribute('aria-pressed')});summary()}
+function summary(){const e=document.getElementById('resetSelectionSummary'),t=document.getElementById('toggleResetSelection'),r=document.getElementById('resetSelectedQuestions'),c=document.getElementById('clearResetSelection');if(e)e.textContent=selecting?selected.size+' question'+(selected.size===1?'':'s')+' selected. Click question tiles above to add or remove them.':'Turn on selection mode, then click question numbers in All question statuses.';if(t)t.textContent=selecting?'Stop selecting':'Select questions';if(r)r.disabled=!selected.size;if(c)c.disabled=!selected.size}
+function renderBackups(){const e=document.getElementById('backupHistory');if(!e)return;const list=backupList();e.innerHTML=list.length?list.map(b=>'<div class="backup-row"><div><strong>'+esc(b.reason)+'</strong><span>'+date(b.createdAt)+(b.metadata&&b.metadata.count?' · '+b.metadata.count+' questions':'')+'</span></div><div class="backup-actions"><button type="button" class="secondary-button restore-backup" data-id="'+esc(b.id)+'">Restore</button><button type="button" class="secondary-button download-backup" data-id="'+esc(b.id)+'">Download</button><button type="button" class="secondary-button delete-backup" data-id="'+esc(b.id)+'">Delete</button></div></div>').join(''):'<div class="analytics-empty">No reset backups yet. One will be created automatically before the first reset.</div>'}
+function css(){if(document.getElementById('maintenanceCss'))return;const s=document.createElement('style');s.id='maintenanceCss';s.textContent='.progress-management-section{display:flex;flex-direction:column;gap:18px}.reset-action-row{display:flex;flex-wrap:wrap;gap:9px}.reset-selection-summary{margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:#f7f9fb;color:var(--muted);font-size:12px}.bank-grid.reset-selection-mode{padding:7px;border:2px dashed #2768a5;border-radius:7px;background:#f4f8fc}.bank-grid.reset-selection-mode .bank-tile{cursor:pointer}.bank-tile.reset-selected{outline:3px solid #6d55a4;outline-offset:1px;background:#eee9fb!important;border-color:#6d55a4!important;color:#4b347d!important}.bank-tile.reset-selected:before{content:"✓";position:absolute;left:2px;top:0;font-size:9px;font-weight:900}.backup-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--border)}.backup-row:first-child{border-top:0}.backup-row>div:first-child span{display:block;margin-top:4px;color:var(--muted);font-size:11px}.backup-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.danger-button:disabled,.secondary-button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:700px){.backup-row{align-items:flex-start;flex-direction:column}.backup-actions{justify-content:flex-start}.reset-action-row>*{flex:1 1 150px}}';document.head.appendChild(s)}
+function ui(){if(document.getElementById('progressManagementSection'))return;const col=document.querySelector('.dashboard-column-wide');if(!col)return;css();const s=document.createElement('section');s.id='progressManagementSection';s.className='progress-management-section';s.innerHTML='<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">PROGRESS MANAGEMENT</div><h3>Reset questions safely</h3><p class="field-help">Every reset creates a recoverable backup. Saved Previous tests remain unless deleted separately.</p></div></div><div class="reset-action-row"><button type="button" id="toggleResetSelection" class="secondary-button">Select questions</button><button type="button" id="clearResetSelection" class="secondary-button" disabled>Clear selection</button><button type="button" id="resetSelectedQuestions" class="danger-button" disabled>Reset selected</button><button type="button" id="resetEntireBank" class="danger-button">Reset entire bank</button></div><div id="resetSelectionSummary" class="reset-selection-summary"></div></article><article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">RECOVERY</div><h3>Reset backups</h3><p class="field-help">Restore a prior state or download a backup file.</p></div><button type="button" id="createManualBackup" class="secondary-button">Create backup</button></div><div id="backupHistory"></div></article>';const a=document.getElementById('analyticsSection');a&&a.parentNode===col?a.insertAdjacentElement('afterend',s):col.appendChild(s);
+ document.getElementById('toggleResetSelection').onclick=()=>{selecting=!selecting;syncTiles()};document.getElementById('clearResetSelection').onclick=()=>{selected.clear();syncTiles()};document.getElementById('resetSelectedQuestions').onclick=()=>resetIds(Array.from(selected),'resetting selected questions');document.getElementById('resetEntireBank').onclick=()=>resetIds(C.fullBank.map(q=>q.id),'resetting the entire question bank');document.getElementById('createManualBackup').onclick=()=>alert(backupNow('Manual backup',{type:'manual'})?'Backup created.':'Backup could not be saved.');renderBackups();syncTiles()
+}
+function deleteTest(id){const tests=read(TESTS,[]),test=tests.find(x=>x.setId===id);if(!test||!confirm('Delete this saved test? A recoverable backup will be created first.'))return;backupNow('Before deleting a saved test',{type:'delete-test',setId:id,total:test.total,scorePct:test.scorePct});const d=read(DELETED,[]);if(d.indexOf(id)<0)d.unshift(id);write(DELETED,d.slice(0,300));write(TESTS,tests.filter(x=>x.setId!==id));const cfg=read(CONFIG,null);if(cfg&&cfg.setId===id&&cfg.status==='completed')localStorage.removeItem(CONFIG);const b=document.querySelector('.delete-history[data-id="'+CSS.escape(id)+'"]');if(b){const row=b.closest('.history-row');if(row)row.remove()}setTimeout(()=>location.reload(),50)}
+function refreshAll(){if(window.BoardsDashboard&&window.BoardsDashboard.render)window.BoardsDashboard.render();ui();renderBackups();setTimeout(syncTiles,0)}
+document.addEventListener('click',e=>{const del=e.target.closest('.delete-history');if(del){e.preventDefault();e.stopImmediatePropagation();deleteTest(del.dataset.id);return}const g=document.getElementById('bankGrid'),tile=e.target.closest('.bank-tile');if(selecting&&tile&&g&&g.contains(tile)){e.preventDefault();e.stopImmediatePropagation();const id=qid(tile);if(id){selected.has(id)?selected.delete(id):selected.add(id);syncTiles()}return}const r=e.target.closest('.restore-backup');if(r){e.preventDefault();restoreBackup(r.dataset.id);return}const d=e.target.closest('.download-backup');if(d){e.preventDefault();downloadBackup(d.dataset.id);return}const x=e.target.closest('.delete-backup');if(x){e.preventDefault();deleteBackup(x.dataset.id)}},true);
+function init(){ui();renderBackups();syncTiles();const g=document.getElementById('bankGrid');if(g)new MutationObserver(()=>setTimeout(syncTiles,0)).observe(g,{childList:true,subtree:true});setInterval(()=>{attachNav();refreshNav();const dash=document.getElementById('dashboardScreen');if(dash&&!dash.hidden){ui();syncTiles()}},500)}
+if(frame)frame.addEventListener('load',()=>setTimeout(attachNav,150));document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+window.BoardsMaintenance={backupNow,restoreBackup,resetQuestions:resetIds,resetEntireBank:()=>resetIds(C.fullBank.map(q=>q.id),'resetting the entire question bank'),render:refreshAll};
 })();
