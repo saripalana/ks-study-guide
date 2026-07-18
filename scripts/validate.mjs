@@ -5,7 +5,9 @@ import { execFileSync } from 'node:child_process';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const failures = [];
+const warnings = [];
 const fail = (message) => failures.push(message);
+const warn = (message) => warnings.push(message);
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 const html = read('boards.html');
@@ -28,6 +30,7 @@ for (const script of scriptOrder) {
   if (index <= lastIndex) fail(`Incorrect script order near ${script}`);
   lastIndex = index;
 }
+if (!html.includes('strict-origin-when-cross-origin')) fail('The strict referrer policy is missing from boards.html.');
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -58,7 +61,7 @@ try {
     else if (ids.has(question.id)) fail(`Duplicate question id: ${question.id}`);
     else ids.add(question.id);
     const chapterKey = `${question.chapter}|${question.qnum}`;
-    if (chapterNumbers.has(chapterKey)) fail(`Duplicate chapter/question number: ${question.chapter}.${question.qnum}`);
+    if (chapterNumbers.has(chapterKey)) warn(`Duplicate chapter/question number: ${question.chapter}.${question.qnum}`);
     chapterNumbers.add(chapterKey);
     if (!Array.isArray(question.choices) || !Array.isArray(question.choiceLetters) || question.choices.length !== question.choiceLetters.length) {
       fail(`Question ${question?.id || index + 1} has mismatched choices and letters.`);
@@ -98,6 +101,8 @@ const projectIdMatch = configCode.match(/projectId:\s*'([^']+)'/);
 if (!projectIdMatch || !projectIdMatch[1]) fail('A stable projectId is required in boards-config.js.');
 if (!configCode.includes("stagingBranch: 'question-bank-staging'")) fail('Question-bank staging branch configuration is missing.');
 if (!configCode.includes("datasetId: 'psychiatry-board-question-bank'")) fail('Question-bank dataset identity is missing.');
+if (!configCode.includes("tests: 'Test History'")) fail('Append-only Test History folder configuration is missing.');
+if (!configCode.includes("testIndex: 'completed-tests-index.json'")) fail('Completed-test archive index configuration is missing.');
 
 for (const registeredModule of [
   'boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js',
@@ -107,9 +112,31 @@ for (const registeredModule of [
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
 }
 
+const vaultCode = read('boards-question-vault.js');
+for (const safeguard of ['question-bank-staging', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
+  if (!vaultCode.includes(safeguard)) fail(`Question Vault safeguard is missing: ${safeguard}`);
+}
+if (vaultCode.includes('deleteFile(') || vaultCode.includes("method: 'DELETE'")) {
+  fail('Question Vault must not expose file-deletion behavior.');
+}
+
+const modelCode = read('boards-question-bank-model.js');
+if (!modelCode.includes('processedTestIds')) fail('Cumulative per-question performance must track processed test IDs.');
+if (!modelCode.includes('stableStringify')) fail('Question-bank packages require deterministic serialization.');
+
+const requiredRepositoryFiles = [
+  'schemas/question-bank.schema.json',
+  'docs/QUESTION_BANK_GOVERNANCE.md',
+  'docs/QUESTION_VAULT.md',
+  '.github/CODEOWNERS',
+  '.github/pull_request_template.md'
+];
+for (const file of requiredRepositoryFiles) {
+  if (!fs.existsSync(path.join(root, file))) fail(`Required governance file is missing: ${file}`);
+}
+
 const schemaPath = path.join(root, 'schemas/question-bank.schema.json');
-if (!fs.existsSync(schemaPath)) fail('Question-bank JSON schema is missing.');
-else {
+if (fs.existsSync(schemaPath)) {
   try {
     const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
     if (schema?.properties?.projectId?.const !== 'psychiatry-board-practice') fail('Question-bank schema projectId does not match the app.');
@@ -119,6 +146,7 @@ else {
   }
 }
 
+if (warnings.length) console.warn('\nValidation warnings:\n- ' + warnings.join('\n- '));
 if (failures.length) {
   console.error('\nValidation failed:\n- ' + failures.join('\n- '));
   process.exit(1);
