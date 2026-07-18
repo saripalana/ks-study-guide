@@ -17,7 +17,8 @@ for (const asset of localAssets) {
 const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
   'boards-dashboard.js', 'boards-exam-v2.js', 'boards-analytics.js', 'boards-builder.js',
-  'boards-nav-status.js', 'boards-maintenance.js', 'boards-drive-backup.js', 'boards-init.js'
+  'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
+  'boards-drive-backup.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -84,6 +85,14 @@ const forbiddenScopes = [
 ];
 for (const scope of forbiddenScopes) if (driveCode.includes(scope)) fail(`Forbidden broad Drive scope found: ${scope}`);
 if (!driveCode.includes('https://www.googleapis.com/auth/drive.appdata')) fail('Required drive.appdata scope is missing.');
+
+const configCode = read('boards-config.js');
+const projectIdMatch = configCode.match(/projectId:\s*'([^']+)'/);
+if (!projectIdMatch || !projectIdMatch[1]) fail('A stable projectId is required in boards-config.js.');
+for (const registeredModule of ['boards-store.js', 'boards-core.js', 'boards-analytics.js', 'boards-maintenance.js', 'boards-drive-backup.js']) {
+  const content = read(registeredModule);
+  if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
+}
 
 if (failures.length) {
   console.error('\nValidation failed:\n- ' + failures.join('\n- '));
