@@ -14,7 +14,9 @@ The Google access token is held only in page memory. **Disconnect session** forg
 
 The optional Question Bank Vault requests `https://www.googleapis.com/auth/drive.file` only after the user selects **Connect Question Vault**. This is separate from the hidden progress backup. The scope permits the app to create and manage its dedicated visible vault files, but not to browse unrelated Drive content.
 
-Question-bank Production is a mirror of reviewed GitHub `main`; Drive Drafts never auto-publish. Production and draft replacements are preceded by append-only Drive history records. The application provides no question-history deletion control.
+Question-bank Production is a mirror of reviewed GitHub `main`; Drive Drafts never auto-publish. Production and draft replacements are preceded by append-only Drive history records. Completed tests are separately copied into an app-created `Test History` folder, and cumulative question metrics retain stable processed-test IDs so a local dashboard deletion cannot silently subtract already-synchronized historical performance.
+
+The application provides no visible-vault History or Test History deletion control.
 
 ## Data classification
 
