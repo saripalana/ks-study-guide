@@ -15,7 +15,7 @@
   window.BoardsConfig = Object.freeze({
     projectId: 'psychiatry-board-practice',
     appName: 'Psychiatry Board Practice',
-    build: '2026.07.18.4',
+    build: '2026.07.18.5',
     schemaVersion: 2,
     storage: Object.freeze({
       keys: storageKeys,
@@ -62,6 +62,16 @@
         testIndex: 'completed-tests-index.json'
       }),
       performanceSyncMinMs: 60000
+    }),
+    exam: Object.freeze({
+      name: 'ABPN Psychiatry Certification Examination',
+      date: '2026-09-08',
+      displayDate: 'September 8, 2026',
+      countdownBoundary: 'browser-local-midnight'
+    }),
+    hardReset: Object.freeze({
+      passcodeSha256: 'b625d589e853d767a8b042f3dafe9f03ebe267bc7da314b99a7600c3070d2957',
+      confirmationPhrase: 'RESET ALL STUDY DATA'
     }),
     limits: Object.freeze({
       savedTests: 50,
