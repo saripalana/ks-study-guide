@@ -33,7 +33,7 @@
   </style>
 </head>
 <body>
-  <div id="loading">Opening the questions in random order…</div>
+  <div id="loading">Opening your randomized study guide…</div>
   <iframe id="studyFrame" src="./index.html" title="Randomized K&S Study Guide"></iframe>
 
   <script>
@@ -47,44 +47,170 @@
 
         injectedScript.textContent = `
           (function () {
-            function shuffleAllQuestions() {
-              for (let i = QUESTIONS.length - 1; i > 0; i--) {
+            const RANDOM_IDS_KEY = 'ksRandomQuestionIdsV2';
+            const RANDOM_COUNT_KEY = 'ksRandomQuestionCountV2';
+            const fullQuestionBank = QUESTIONS.slice();
+            const fullQuestionMap = new Map(fullQuestionBank.map(function (q) { return [q.id, q]; }));
+
+            function clampCount(value) {
+              const parsed = Number.parseInt(value, 10);
+              if (!Number.isFinite(parsed)) return 40;
+              return Math.max(1, Math.min(fullQuestionBank.length, parsed));
+            }
+
+            function shuffledCopy(list) {
+              const copy = list.slice();
+              for (let i = copy.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
-                [QUESTIONS[i], QUESTIONS[j]] = [QUESTIONS[j], QUESTIONS[i]];
+                const temporary = copy[i];
+                copy[i] = copy[j];
+                copy[j] = temporary;
               }
+              return copy;
+            }
+
+            function readSavedIds(expectedCount) {
+              try {
+                const saved = JSON.parse(localStorage.getItem(RANDOM_IDS_KEY) || '[]');
+                if (!Array.isArray(saved) || saved.length !== expectedCount) return null;
+                if (!saved.every(function (id) { return fullQuestionMap.has(id); })) return null;
+                return saved;
+              } catch (error) {
+                return null;
+              }
+            }
+
+            function applyRandomSet(count, makeNewSet) {
+              const safeCount = clampCount(count);
+              let selectedIds = makeNewSet ? null : readSavedIds(safeCount);
+
+              if (!selectedIds) {
+                selectedIds = shuffledCopy(fullQuestionBank)
+                  .slice(0, safeCount)
+                  .map(function (q) { return q.id; });
+                localStorage.setItem(RANDOM_IDS_KEY, JSON.stringify(selectedIds));
+              }
+
+              localStorage.setItem(RANDOM_COUNT_KEY, String(safeCount));
+
+              const selectedQuestions = selectedIds
+                .map(function (id) { return fullQuestionMap.get(id); })
+                .filter(Boolean);
+
+              QUESTIONS.splice(0, QUESTIONS.length);
+              selectedQuestions.forEach(function (q) { QUESTIONS.push(q); });
 
               const chapterSelect = document.getElementById('chapterSelect');
               if (chapterSelect) {
+                const allOption = chapterSelect.querySelector('option[value="all"]');
+                if (allOption) allOption.textContent = 'Random Set (' + selectedQuestions.length + ' questions)';
                 chapterSelect.value = 'all';
                 chapterSelect.dispatchEvent(new Event('change'));
               }
+
+              const countInput = document.getElementById('randomQuestionCount');
+              if (countInput) countInput.value = String(safeCount);
+
+              const status = document.getElementById('randomSetStatus');
+              if (status) status.textContent = selectedQuestions.length + ' random questions';
             }
 
-            shuffleAllQuestions();
+            function addRandomSetControls() {
+              const controls = document.querySelector('header .controls');
+              if (!controls || document.getElementById('randomSetControls')) return;
+
+              const group = document.createElement('div');
+              group.id = 'randomSetControls';
+              group.style.display = 'flex';
+              group.style.alignItems = 'center';
+              group.style.gap = '6px';
+              group.style.flexWrap = 'wrap';
+              group.style.padding = '4px 6px';
+              group.style.border = '1px solid #475569';
+              group.style.borderRadius = '7px';
+              group.style.background = '#1e293b';
+
+              const label = document.createElement('label');
+              label.htmlFor = 'randomQuestionCount';
+              label.textContent = 'Questions:';
+              label.style.color = '#e2e8f0';
+              label.style.fontSize = '13px';
+              label.style.fontWeight = '700';
+
+              const input = document.createElement('input');
+              input.id = 'randomQuestionCount';
+              input.type = 'number';
+              input.min = '1';
+              input.max = String(fullQuestionBank.length);
+              input.step = '1';
+              input.value = String(clampCount(localStorage.getItem(RANDOM_COUNT_KEY) || '40'));
+              input.title = 'Choose any number from 1 to ' + fullQuestionBank.length;
+              input.style.width = '76px';
+              input.style.padding = '7px 8px';
+              input.style.borderRadius = '6px';
+              input.style.border = '1px solid #64748b';
+              input.style.fontSize = '13px';
+
+              const createButton = document.createElement('button');
+              createButton.type = 'button';
+              createButton.id = 'createRandomSetBtn';
+              createButton.textContent = 'Create Random Set';
+              createButton.title = 'Choose a new random group of questions';
+              createButton.style.background = '#2563eb';
+              createButton.style.color = 'white';
+              createButton.style.border = '1px solid #2563eb';
+              createButton.style.fontSize = '13px';
+              createButton.style.fontWeight = '700';
+
+              const allButton = document.createElement('button');
+              allButton.type = 'button';
+              allButton.id = 'useAllQuestionsBtn';
+              allButton.textContent = 'All ' + fullQuestionBank.length;
+              allButton.title = 'Use every question in a new random order';
+              allButton.style.background = '#334155';
+              allButton.style.color = 'white';
+              allButton.style.border = '1px solid #475569';
+              allButton.style.fontSize = '13px';
+              allButton.style.fontWeight = '700';
+
+              const status = document.createElement('span');
+              status.id = 'randomSetStatus';
+              status.style.color = '#cbd5e1';
+              status.style.fontSize = '12px';
+              status.style.whiteSpace = 'nowrap';
+
+              function createSetFromInput() {
+                const count = clampCount(input.value);
+                input.value = String(count);
+                applyRandomSet(count, true);
+              }
+
+              createButton.addEventListener('click', createSetFromInput);
+              input.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') createSetFromInput();
+              });
+              allButton.addEventListener('click', function () {
+                input.value = String(fullQuestionBank.length);
+                applyRandomSet(fullQuestionBank.length, true);
+              });
+
+              group.appendChild(label);
+              group.appendChild(input);
+              group.appendChild(createButton);
+              group.appendChild(allButton);
+              group.appendChild(status);
+
+              const scoreBadge = document.getElementById('scoreBadge');
+              controls.insertBefore(group, scoreBadge || null);
+            }
+
+            addRandomSetControls();
+
+            const startingCount = clampCount(localStorage.getItem(RANDOM_COUNT_KEY) || '40');
+            applyRandomSet(startingCount, false);
 
             const allQuestionsButton = document.getElementById('landingAllBtn');
             if (allQuestionsButton) allQuestionsButton.click();
-
-            const controls = document.querySelector('header .controls');
-            if (controls && !document.getElementById('reshuffleBtn')) {
-              const button = document.createElement('button');
-              button.type = 'button';
-              button.id = 'reshuffleBtn';
-              button.textContent = '🔀 Shuffle Again';
-              button.title = 'Put all 602 questions into a new random order';
-              button.style.background = '#334155';
-              button.style.color = 'white';
-              button.style.border = '1px solid #475569';
-              button.style.fontSize = '13px';
-              button.style.fontWeight = '700';
-
-              button.addEventListener('click', () => {
-                shuffleAllQuestions();
-              });
-
-              const scoreBadge = document.getElementById('scoreBadge');
-              controls.insertBefore(button, scoreBadge || null);
-            }
           })();
         `;
 
