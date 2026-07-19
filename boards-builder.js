@@ -5,8 +5,8 @@
   const Views = window.BoardsDashboardViews;
   const Registry = window.BoardsDashboardRegistry;
   const Banks = window.BoardsQuestionBankRegistry;
-  const BankSelectorView = window.BoardsQuestionBankSelectorView;
-  if (!C || !Views || !Registry || !Banks || !BankSelectorView || !C.fullBank || !C.fullBank.length) return;
+  let BankSelectorView = window.BoardsQuestionBankSelectorView;
+  if (!C || !Views || !Registry || !Banks || !C.fullBank || !C.fullBank.length) return;
 
   const SETTINGS_KEY = C.KEY.settings;
   const activeBank = Banks.activeBank();
@@ -20,6 +20,23 @@
 
   let selectedPool = 'all';
   let selectedChapters = new Set(allChapters.map(function (item) { return item.value; }));
+
+  function ensureStylesheet() {
+    const href = './boards-builder.css?v=2';
+    if (document.querySelector('link[href="' + href + '"]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+  }
+
+  async function ensureBankSelectorView() {
+    if (BankSelectorView) return BankSelectorView;
+    await import('./ui/question-bank-selector-view.js?v=1');
+    BankSelectorView = window.BoardsQuestionBankSelectorView;
+    if (!BankSelectorView) throw new Error('Question-bank selector view did not initialize.');
+    return BankSelectorView;
+  }
 
   function currentStatus(q) {
     return C.statusForQuestion(q, C.appState(), C.historyState(), C.activeConfig());
@@ -153,7 +170,7 @@
 
   function refreshBankSelector() {
     const container = document.getElementById('questionBankBuilderSection');
-    if (!container) return;
+    if (!container || !BankSelectorView) return;
     BankSelectorView.updateSelector(container, Banks.list(), activeBank);
     bindBankOptions(container);
   }
@@ -242,7 +259,9 @@
     });
   }
 
-  function init() {
+  async function init() {
+    ensureStylesheet();
+    await ensureBankSelectorView();
     readSavedBuilderSettings();
     injectBuilderUi();
     replaceStartButton();
@@ -259,6 +278,12 @@
     window.addEventListener('message', function () { setTimeout(updateBuilder, 200); });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
+  function start() {
+    init().catch(function (error) {
+      console.error('Question-bank selector could not initialize.', error);
+    });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();
