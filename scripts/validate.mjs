@@ -18,10 +18,10 @@ for (const asset of localAssets) {
 
 const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
-  'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js', 'boards-analytics.js',
-  'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
-  'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-drive-backup.js',
-  'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
+  'ui/dashboard-registry.js', 'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js',
+  'boards-analytics.js', 'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js',
+  'boards-safety.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js',
+  'boards-drive-backup.js', 'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -31,6 +31,9 @@ for (const script of scriptOrder) {
   lastIndex = index;
 }
 if (!html.includes('strict-origin-when-cross-origin')) fail('The strict referrer policy is missing from boards.html.');
+if (!html.includes('data-dashboard-region="welcome-tools"')) fail('The welcome-tools dashboard region is missing.');
+if (!html.includes('./styles/tokens.css')) fail('The centralized design-token stylesheet is missing.');
+if (!html.includes('./styles/ui-foundation.css')) fail('The UI-foundation stylesheet is missing.');
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -117,6 +120,19 @@ for (const registeredModule of [
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
 }
 
+const registryCode = read('ui/dashboard-registry.js');
+for (const capability of ['register', 'mountAll', 'data-dashboard-component', 'MutationObserver']) {
+  if (!registryCode.includes(capability)) fail(`Dashboard registry capability is missing: ${capability}`);
+}
+
+const tokenCss = read('styles/tokens.css');
+for (const token of ['--color-navy', '--color-surface', '--space-4', '--radius-lg', '--focus-ring']) {
+  if (!tokenCss.includes(token)) fail(`Required design token is missing: ${token}`);
+}
+
+const uiFoundationCss = read('styles/ui-foundation.css');
+if (!uiFoundationCss.includes('.exam-countdown-card')) fail('Countdown presentation must live in the UI-foundation stylesheet.');
+
 const vaultCode = read('boards-question-vault.js');
 for (const safeguard of ['Vault.stagingBranch', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
   if (!vaultCode.includes(safeguard)) fail(`Question Vault safeguard is missing: ${safeguard}`);
@@ -136,8 +152,11 @@ if (hardResetCode.includes("'thedude9'")) fail('The reset code must not be embed
 if (hardResetCode.includes("method: 'DELETE'")) fail('Absolute reset must preserve cloud archives rather than deleting them.');
 
 const countdownCode = read('boards-exam-countdown.js');
-for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'browser’s local time']) {
+for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'browser’s local time', "region: 'welcome-tools'"]) {
   if (!countdownCode.includes(capability)) fail(`Exam countdown capability is missing: ${capability}`);
+}
+if (countdownCode.includes("createElement('style')") || countdownCode.includes('examCountdownCss')) {
+  fail('Countdown styling must remain separate from countdown behavior.');
 }
 
 const modelCode = read('boards-question-bank-model.js');
@@ -148,11 +167,15 @@ const requiredRepositoryFiles = [
   'schemas/question-bank.schema.json',
   'docs/QUESTION_BANK_GOVERNANCE.md',
   'docs/QUESTION_VAULT.md',
+  'docs/LAUNCH_HARDENING_TEST_PLAN.md',
+  'styles/tokens.css',
+  'styles/ui-foundation.css',
+  'ui/dashboard-registry.js',
   '.github/CODEOWNERS',
   '.github/pull_request_template.md'
 ];
 for (const file of requiredRepositoryFiles) {
-  if (!fs.existsSync(path.join(root, file))) fail(`Required governance file is missing: ${file}`);
+  if (!fs.existsSync(path.join(root, file))) fail(`Required governance or architecture file is missing: ${file}`);
 }
 
 const schemaPath = path.join(root, 'schemas/question-bank.schema.json');
@@ -172,4 +195,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Validated ${localAssets.length} local HTML assets and ${javascriptFiles.length} JavaScript files.`);
-console.log('Security, reset safety, countdown, question governance, and architecture checks passed.');
+console.log('Security, reset safety, countdown, UI foundation, question governance, and architecture checks passed.');
