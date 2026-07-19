@@ -2,7 +2,7 @@
 
 Branch: `refactor/ui-foundation`
 
-This record covers the behavior-preserving UI foundation through the shared management and Drive panel migration.
+This record covers the behavior-preserving UI foundation, shared management and Drive panels, analytics/test history, and advanced practice-set builder.
 
 ## Automated repository validation
 
@@ -10,35 +10,50 @@ This record covers the behavior-preserving UI foundation through the shared mana
 - Local HTML assets and JavaScript syntax validate.
 - Only the limited `drive.appdata` and `drive.file` Google Drive scopes are present.
 - Original question data, browser storage keys, Drive filenames, and vault safety rules remain unchanged.
-- Operational modules are rejected if they inject presentation CSS or bypass the shared panel templates and dashboard registry.
+- Operational modules are rejected if they inject presentation CSS or bypass the shared templates, views, and dashboard registry.
+- The dashboard requires explicit `welcome-tools`, `practice-builder`, `analytics`, and `data-tools` regions.
+- Temporary write-enabled migration workflows and patch payloads are absent from the final change set.
 
-## Isolated browser regression
+## Isolated browser functional regression
 
-An isolated Chromium document was loaded with a mock browser storage provider; no personal study or Drive data were used.
+The final suite used isolated Chromium profiles with temporary browser-only progress and saved-test records. It did not use personal study data or Google Drive data.
 
-- 602 question-bank tiles rendered.
-- Six dashboard summary cards rendered.
+The suite passed at both:
+
+- Desktop: 1440 × 1000
+- Mobile: 390 × 844 with touch/mobile emulation
+
+Verified behavior:
+
+- 602 question-bank tiles and six dashboard summary cards rendered.
+- The ABPN countdown updated once per second.
+- The advanced builder rendered 34 subject options and five question pools.
+- Clearing all subjects disabled test creation and displayed a warning.
+- Restoring all subjects re-enabled test creation.
+- Selecting an empty flagged pool safely disabled test creation and displayed a warning.
+- Returning to the all-question pool restored test creation.
+- Five analytics metrics, one seeded category row, and one seeded saved test rendered.
+- Saved-test review opened, showed both questions and the expected score, and closed correctly.
 - Progress management, absolute reset, private Drive backup, and Question Vault each mounted exactly once.
-- Deterministic panel order was preserved after repeated registry remounts:
+- Deterministic data-tool order was preserved:
   1. Progress management
   2. Absolute reset
   3. Private Drive backup
   4. Question Vault
-- The ABPN countdown updated once per second.
 - The absolute-reset dialog opened and canceled without running a reset.
-- Disconnected Drive and vault action buttons remained disabled.
-- A seeded storage sentinel remained unchanged.
+- Seeded study progress and saved-test history remained unchanged.
+- Disconnected Drive and vault controls remained in their safe states.
+- No horizontal overflow occurred on desktop or mobile.
 - No JavaScript errors were recorded.
-- Desktop and mobile-width layouts had no horizontal overflow.
-- Status areas retain live-region attributes, control groups are labeled, and the reset dialog retains dialog semantics.
 
-## Migration verification
+## Accessibility and responsive safeguards
 
-- The one-time branch-only migration completed successfully.
-- Its temporary script and write-enabled workflow were removed by the migration commit.
-- The finished operational modules use the shared templates and deterministic `data-tools` region.
-- This documentation-only follow-up commit triggers validation against the completed branch head.
+- Status areas retain live-region attributes.
+- Related controls use labeled groups.
+- Confirmation and review overlays retain dialog semantics.
+- Narrow analytics grids use zero-minimum columns and wrapping to prevent mobile overflow.
+- Mobile controls and saved-test review interactions were exercised through the installed event handlers.
 
 ## Deployment status
 
-The work remains isolated in draft pull request #3. The live `main` branch has not been changed by this refactor.
+The refactor remains isolated in pull request #3 until the controlled merge. The live `main` branch has not yet been changed by this refactor. After merging, the final live test will verify the existing hidden Drive backup and visible Question Vault through the refactored interface without performing a destructive reset.
