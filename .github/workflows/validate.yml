@@ -46,6 +46,8 @@ jobs:
         run: node scripts/question-bank-selector-smoke.mjs
       - name: Run complete K&S and future-bank consistency matrix
         run: node scripts/full-platform-consistency-smoke.mjs
+      - name: Run three-bank import readiness test
+        run: node scripts/qbank-import-readiness-smoke.mjs
       - name: Upload browser smoke results
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -97,6 +99,16 @@ jobs:
             full-platform-consistency-report.json
             full-platform-ks.png
             full-platform-future.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload question-bank import readiness results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: qbank-import-readiness-results
+          path: |
+            qbank-import-readiness-report.json
+            qbank-import-readiness.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload validation report on failure
