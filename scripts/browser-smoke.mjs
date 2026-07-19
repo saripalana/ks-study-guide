@@ -85,7 +85,7 @@ async function runViewport(name, viewport, screenshot) {
 
   const now = Date.now();
   const seed = {
-    answered: { ch01q001: { selectedLetter: 'A', correct: true } },
+    answered: { 'k-1.1': { selectedLetter: 'A', correct: true } },
     testAnswers: {},
     flagged: {},
     missed: {},
@@ -112,15 +112,15 @@ async function runViewport(name, viewport, screenshot) {
     scorePct: 50,
     elapsedSeconds: 60,
     averageSeconds: 30,
-    ids: ['ch01q001', 'ch01q002'],
+    ids: ['k-1.1', 'k-1.2'],
     results: {
-      ch01q001: { status: 'correct', selectedLetter: 'A', seconds: 25 },
-      ch01q002: { status: 'incorrect', selectedLetter: 'A', seconds: 35 }
+      'k-1.1': { status: 'correct', selectedLetter: 'A', seconds: 25 },
+      'k-1.2': { status: 'incorrect', selectedLetter: 'A', seconds: 35 }
     },
     flagged: {},
     categories: [{
       chapter: 1,
-      title: 'Neural Sciences',
+      title: 'Examination and Diagnosis of the Psychiatric Patient',
       total: 2,
       correct: 1,
       incorrect: 1,
@@ -151,7 +151,7 @@ async function runViewport(name, viewport, screenshot) {
     tiles: document.querySelectorAll('.bank-tile').length,
     summaryCards: document.querySelectorAll('.stat-card').length,
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    answerPreserved: JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.ch01q001?.selectedLetter === 'A',
+    answerPreserved: JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.['k-1.1']?.selectedLetter === 'A',
     savedTestPreserved: JSON.parse(localStorage.getItem('ksBoardsTestsV3') || '[]')[0]?.setId === 'smoke-saved-test',
     panels: {
       analytics: !!document.getElementById('analyticsSection'),
@@ -211,7 +211,7 @@ async function runViewport(name, viewport, screenshot) {
 
   const finalState = await page.evaluate(() => ({
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    answerPreserved: JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.ch01q001?.selectedLetter === 'A',
+    answerPreserved: JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.['k-1.1']?.selectedLetter === 'A',
     savedTestPreserved: JSON.parse(localStorage.getItem('ksBoardsTestsV3') || '[]')[0]?.setId === 'smoke-saved-test'
   }));
 
