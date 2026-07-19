@@ -32,6 +32,13 @@ An isolated Chromium document was loaded with a mock browser storage provider; n
 - Desktop and mobile-width layouts had no horizontal overflow.
 - Status areas retain live-region attributes, control groups are labeled, and the reset dialog retains dialog semantics.
 
+## Migration verification
+
+- The one-time branch-only migration completed successfully.
+- Its temporary script and write-enabled workflow were removed by the migration commit.
+- The finished operational modules use the shared templates and deterministic `data-tools` region.
+- This documentation-only follow-up commit triggers validation against the completed branch head.
+
 ## Deployment status
 
 The work remains isolated in draft pull request #3. The live `main` branch has not been changed by this refactor.
