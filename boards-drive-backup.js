@@ -26,6 +26,7 @@
   let lastUploadAt = 0;
   let pendingTimer = null;
   let pendingMilestoneReason = '';
+  let pendingAutomaticSync = false;
 
   function settings() {
     const value = Store.read(Keys.driveSettings, {});
@@ -208,23 +209,45 @@
       client_id: Drive.clientId,
       scope: Drive.scope,
       callback: function (response) {
-        if (!response || response.error || !response.access_token) { setStatus('Google authorization was not completed.', 'error'); return; }
-        if (!google.accounts.oauth2.hasGrantedAllScopes(response, Drive.scope)) { setStatus('The hidden app-data permission was not granted.', 'error'); return; }
+        if (!response || response.error || !response.access_token) {
+          pendingAutomaticSync = false;
+          setStatus('Google authorization was not completed.', 'error');
+          return;
+        }
+        if (!google.accounts.oauth2.hasGrantedAllScopes(response, Drive.scope)) {
+          pendingAutomaticSync = false;
+          setStatus('The hidden app-data permission was not granted.', 'error');
+          return;
+        }
         accessToken = response.access_token;
         tokenExpiresAt = Date.now() + (Number(response.expires_in) || 3600) * 1000;
         connected = true;
         setStatus('Connected securely. Checking for an existing Drive backup…', 'neutral');
         updateUi();
-        inspectRemote().catch(handleError);
+        inspectRemote().then(function () {
+          if (!pendingAutomaticSync) return null;
+          pendingAutomaticSync = false;
+          return syncLatest({ skipInspect: true });
+        }).catch(function (error) {
+          pendingAutomaticSync = false;
+          handleError(error);
+        });
       },
-      error_callback: function () { setStatus('The Google authorization window was closed or blocked.', 'error'); }
+      error_callback: function () {
+        pendingAutomaticSync = false;
+        setStatus('The Google authorization window was closed or blocked.', 'error');
+      }
     });
     return true;
   }
 
   function connectDrive() {
-    if (!initializeTokenClient()) { setStatus('Google authorization is still loading. Try Connect again in a moment.', 'warning'); return; }
+    if (!initializeTokenClient()) {
+      setStatus('Google authorization is still loading. Try Connect again in a moment.', 'warning');
+      return false;
+    }
     tokenClient.requestAccessToken({ prompt: '' });
+    return true;
   }
 
   function clearConnectionState() {
@@ -234,6 +257,7 @@
     syncing = false;
     syncReady = false;
     conflict = false;
+    pendingAutomaticSync = false;
     remoteCurrent = null;
     remoteHistory = { schemaVersion: Config.schemaVersion, projectId: Config.projectId, updatedAt: 0, snapshots: [], file: null };
     clearTimeout(pendingTimer);
@@ -322,7 +346,7 @@
         if (remoteCurrent.snapshot.schemaVersion !== Config.schemaVersion) await uploadCurrent(local, false);
         setStatus('Connected. This browser matches the latest Drive backup.', 'good');
       } else {
-        syncReady = false; conflict = true; setStatus('Drive contains different study data. Choose “Back up now” to keep this browser, or “Restore latest Drive backup” to use Drive.', 'warning');
+        syncReady = false; conflict = true; setStatus('Drive contains different study data. Automatic sync will compare timestamps before choosing a source.', 'warning');
       }
     } finally { syncing = false; updateUi(); }
   }
@@ -350,19 +374,39 @@
     lastSignificantHash = significantHash();
   }
 
-  async function manualBackup() {
-    if (!connected || syncing) return;
-    syncing = true; updateUi(); setStatus('Saving this browser to Google Drive…', 'neutral');
+  async function pushLocalAsLatest(options) {
+    if (!connected || syncing) return { action: 'unavailable', state: getSyncState() };
+    const config = options || {};
+    syncing = true;
+    updateUi();
+    setStatus(config.statusMessage || 'Saving this device as the latest Google Drive copy…', 'neutral');
     try {
-      const local = currentSnapshot('Manual Drive backup');
-      if (conflict && remoteCurrent) {
-        if (!confirm('This will make the current browser data the latest Drive backup. The existing Drive state will first be preserved in cloud history. Continue?')) return;
-        await appendCloudHistory(remoteCurrent.snapshot, 'Drive state before browser overwrite');
+      const local = currentSnapshot(config.snapshotReason || 'Device chosen as latest');
+      const differentRemote = !!(remoteCurrent && remoteCurrent.snapshot.hash !== local.hash);
+      if (config.confirmOverwrite && differentRemote && !confirm('This will make the current browser data the latest Drive backup. The existing Drive state will first be preserved in cloud history. Continue?')) {
+        return { action: 'cancelled', state: getSyncState() };
       }
-      await uploadCurrent(local, true, 'Manual cloud backup');
-      syncReady = true; conflict = false; pendingMilestoneReason = '';
-      setStatus('Backup complete. Current data and a historical snapshot are stored in Drive.', 'good');
-    } finally { syncing = false; updateUi(); }
+      if (differentRemote) await appendCloudHistory(remoteCurrent.snapshot, config.remoteHistoryReason || 'Drive state before device overwrite');
+      await uploadCurrent(local, true, config.historyReason || 'Device selected as latest source');
+      syncReady = true;
+      conflict = false;
+      pendingMilestoneReason = '';
+      setStatus('Sync complete. This device is now the latest copy in Google Drive.', 'good');
+      return { action: 'used-local', state: getSyncState() };
+    } finally {
+      syncing = false;
+      updateUi();
+    }
+  }
+
+  async function manualBackup() {
+    return pushLocalAsLatest({
+      confirmOverwrite: true,
+      snapshotReason: 'Manual Drive backup',
+      historyReason: 'Manual cloud backup',
+      remoteHistoryReason: 'Drive state before browser overwrite',
+      statusMessage: 'Saving this browser to Google Drive…'
+    });
   }
 
   function applySnapshot(snapshot) {
@@ -375,12 +419,88 @@
     window.location.reload();
   }
 
+  async function pullDriveAsLatest(options) {
+    if (!remoteCurrent || syncing) return { action: 'unavailable', state: getSyncState() };
+    const config = options || {};
+    if (config.confirmRestore && !confirm('Restore the latest Google Drive backup on this browser? The current browser state will first be preserved in cloud and local recovery history.')) {
+      return { action: 'cancelled', state: getSyncState() };
+    }
+    syncing = true;
+    updateUi();
+    setStatus(config.statusMessage || 'Retrieving the latest Google Drive copy onto this device…', 'neutral');
+    try {
+      await appendCloudHistory(historySnapshot(config.localHistoryReason || 'Browser state before Drive restore'), config.localHistoryReason || 'Browser state before Drive restore');
+      const snapshot = remoteCurrent.snapshot;
+      setStatus('Drive copy selected. Restoring this device now…', 'good');
+      applySnapshot(snapshot);
+      return { action: 'used-drive', state: getSyncState() };
+    } finally {
+      syncing = false;
+      updateUi();
+    }
+  }
+
   async function restoreLatest() {
-    if (!remoteCurrent || syncing) return;
-    if (!confirm('Restore the latest Google Drive backup on this browser? The current browser state will first be preserved in cloud and local recovery history.')) return;
-    syncing = true; updateUi();
-    try { await appendCloudHistory(historySnapshot('Browser state before Drive restore'), 'Browser state before Drive restore'); applySnapshot(remoteCurrent.snapshot); }
-    finally { syncing = false; updateUi(); }
+    return pullDriveAsLatest({ confirmRestore: true });
+  }
+
+  async function chooseSource(source) {
+    if (source === 'local') {
+      return pushLocalAsLatest({
+        confirmOverwrite: false,
+        snapshotReason: 'Device manually selected as latest',
+        historyReason: 'Manual source choice: device',
+        remoteHistoryReason: 'Drive state before manual device choice'
+      });
+    }
+    if (source === 'drive') {
+      return pullDriveAsLatest({
+        confirmRestore: false,
+        localHistoryReason: 'Browser state before manual Drive choice'
+      });
+    }
+    throw new Error('Choose either this device or Google Drive as the sync source.');
+  }
+
+  async function syncLatest(options) {
+    const config = options || {};
+    if (!connected) {
+      pendingAutomaticSync = true;
+      if (!connectDrive()) {
+        pendingAutomaticSync = false;
+        throw new Error('Google authorization is still loading. Try Sync now again in a moment.');
+      }
+      return { action: 'connecting', state: getSyncState() };
+    }
+    if (syncing) return { action: 'busy', state: getSyncState() };
+
+    try {
+      if (!config.skipInspect) await inspectRemote();
+      const state = getSyncState();
+      if (state.relation === 'in-sync') {
+        setStatus('Already in sync. This device and Google Drive match.', 'good');
+        return { action: 'in-sync', state: state };
+      }
+      if (state.relation === 'no-drive-backup' || state.relation === 'local-newer') {
+        return pushLocalAsLatest({
+          confirmOverwrite: false,
+          snapshotReason: 'Automatic newest-copy sync from device',
+          historyReason: 'Automatic sync: device was newer',
+          remoteHistoryReason: 'Drive state before automatic device update'
+        });
+      }
+      if (state.relation === 'drive-newer') {
+        return pullDriveAsLatest({
+          confirmRestore: false,
+          localHistoryReason: 'Browser state before automatic Drive update'
+        });
+      }
+      setStatus('Automatic sync could not safely determine the newest copy. Choose the source manually.', 'warning');
+      return { action: 'needs-choice', state: state };
+    } catch (error) {
+      handleError(error);
+      throw error;
+    }
   }
 
   async function restoreHistory(id) {
@@ -452,5 +572,15 @@
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-  window.BoardsDriveBackup = Object.freeze({ connect: connectDrive, backupNow: manualBackup, restoreLatest: restoreLatest, disconnect: disconnectSession, revoke: revokeAccess, getSyncState: getSyncState, syncStateEvent: SYNC_STATE_EVENT });
+  window.BoardsDriveBackup = Object.freeze({
+    connect: connectDrive,
+    backupNow: manualBackup,
+    restoreLatest: restoreLatest,
+    syncLatest: syncLatest,
+    chooseSource: chooseSource,
+    disconnect: disconnectSession,
+    revoke: revokeAccess,
+    getSyncState: getSyncState,
+    syncStateEvent: SYNC_STATE_EVENT
+  });
 })();
