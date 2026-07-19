@@ -71,6 +71,7 @@ try {
   const initial = await page.evaluate(() => {
     const registry = window.BoardsQuestionBankRegistry;
     const before = registry.list().map((bank) => bank.id);
+    const visibleButtons = Array.from(document.querySelectorAll('#deviceSyncCard button')).filter((button) => button.getClientRects().length > 0 && getComputedStyle(button).visibility !== 'hidden');
     let malformedRejected = false;
     let duplicateRejected = false;
     try {
@@ -89,15 +90,16 @@ try {
       selectorOptions: Array.from(document.querySelectorAll('.question-bank-option')).map((button) => button.getAttribute('data-bank-id')),
       malformedRejected,
       duplicateRejected,
-      syncButtons: document.querySelectorAll('#deviceSyncCard button:not([hidden])').length
+      syncButtons: visibleButtons.length,
+      syncButtonIds: visibleButtons.map((button) => button.id)
     };
   });
   report.initial = initial;
-  if (initial.siteEyebrow !== 'ABPN PSYCHIATRY STUDY' || initial.siteTitle !== 'ABPN Psychiatry Study' || initial.documentTitle !== 'ABPN Psychiatry Study') fail('Global ABPN site identity is not stable before importing additional banks.');
+  if (initial.siteEyebrow !== 'ABPN PSYCHIATRY STUDY SITE' || initial.siteTitle !== 'ABPN Psychiatry Study' || !initial.documentTitle.startsWith('ABPN Psychiatry Study')) fail('Global ABPN site identity is not stable before importing additional banks.');
   if (initial.activeBank !== 'ks-psychiatry-core') fail('K&S is not the default active bank.');
   if (initial.catalogBefore.length !== 3 || initial.catalogAfter.length !== 3 || initial.selectorOptions.length !== 3) fail('Three-bank catalog/selector population is inconsistent.');
   if (!initial.malformedRejected || !initial.duplicateRejected) fail('Malformed or conflicting bank registration was not rejected safely.');
-  if (initial.syncButtons !== 1) fail(`Expected exactly one visible Device Sync button, found ${initial.syncButtons}.`);
+  if (initial.syncButtons !== 1 || initial.syncButtonIds[0] !== 'deviceSyncNow') fail(`Expected only the visible Sync now button, found ${initial.syncButtonIds.join(', ') || 'none'}.`);
 
   async function switchBank(bankId) {
     await page.$eval('#questionBankSelector', (details) => { details.open = true; });
@@ -142,7 +144,7 @@ try {
     }, bank);
     report.banks[bank.id] = state;
     if (state.activeId !== bank.id || state.activeTitle !== bank.title || state.selectorTitle !== bank.title) fail(`${bank.id} identity did not propagate to bank-specific areas.`);
-    if (state.siteTitle !== 'ABPN Psychiatry Study' || state.documentTitle !== 'ABPN Psychiatry Study') fail(`${bank.id} leaked into global site identity.`);
+    if (state.siteTitle !== 'ABPN Psychiatry Study' || !state.documentTitle.startsWith('ABPN Psychiatry Study · ')) fail(`${bank.id} leaked into global site identity instead of appearing only as bank context.`);
     if (state.tiles !== bank.questions.length || !state.answerSaved || state.configBankId !== bank.id || state.backupBankId !== bank.id) fail(`${bank.id} active set, answer, or backup did not remain bank-bound.`);
     if (![state.appKey, state.configKey, state.testsKey, state.backupsKey].every((key) => key.startsWith(`abpnBank:${bank.id}:`))) fail(`${bank.id} browser storage keys are not isolated.`);
     if (!state.currentFile.includes(bank.id) || !state.historyFile.includes(bank.id) || !state.vaultPath.includes(bank.id)) fail(`${bank.id} Drive or Question Vault identity is not isolated.`);
@@ -150,22 +152,26 @@ try {
   }
 
   await switchBank('ks-psychiatry-core');
-  const final = await page.evaluate(() => ({
-    activeBank: window.BoardsConfig.bank.id,
-    questionCount: window.BoardsCore.fullBank.length,
-    siteTitle: document.querySelector('.dashboard-topbar h1')?.textContent || '',
-    alphaAnswer: JSON.parse(localStorage.getItem('abpnBank:sample-bank-alpha:appState') || '{}').answered?.['alpha-1']?.correct,
-    betaAnswer: JSON.parse(localStorage.getItem('abpnBank:sample-bank-beta:appState') || '{}').answered?.['beta-1']?.correct,
-    alphaConfigBank: JSON.parse(localStorage.getItem('abpnBank:sample-bank-alpha:activeSet') || '{}').bankId,
-    betaConfigBank: JSON.parse(localStorage.getItem('abpnBank:sample-bank-beta:activeSet') || '{}').bankId,
-    visibleSyncButtons: document.querySelectorAll('#deviceSyncCard button:not([hidden])').length,
-    overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
-  }));
+  const final = await page.evaluate(() => {
+    const visibleButtons = Array.from(document.querySelectorAll('#deviceSyncCard button')).filter((button) => button.getClientRects().length > 0 && getComputedStyle(button).visibility !== 'hidden');
+    return {
+      activeBank: window.BoardsConfig.bank.id,
+      questionCount: window.BoardsCore.fullBank.length,
+      siteTitle: document.querySelector('.dashboard-topbar h1')?.textContent || '',
+      alphaAnswer: JSON.parse(localStorage.getItem('abpnBank:sample-bank-alpha:appState') || '{}').answered?.['alpha-1']?.correct,
+      betaAnswer: JSON.parse(localStorage.getItem('abpnBank:sample-bank-beta:appState') || '{}').answered?.['beta-1']?.correct,
+      alphaConfigBank: JSON.parse(localStorage.getItem('abpnBank:sample-bank-alpha:activeSet') || '{}').bankId,
+      betaConfigBank: JSON.parse(localStorage.getItem('abpnBank:sample-bank-beta:activeSet') || '{}').bankId,
+      visibleSyncButtons: visibleButtons.length,
+      visibleSyncButtonIds: visibleButtons.map((button) => button.id),
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth
+    };
+  });
   report.final = final;
   if (final.activeBank !== 'ks-psychiatry-core' || final.questionCount !== 602) fail('Returning to K&S did not restore the protected 602-question bank.');
   if (final.siteTitle !== 'ABPN Psychiatry Study') fail('Global site identity changed after multiple bank switches.');
   if (!final.alphaAnswer || !final.betaAnswer || final.alphaConfigBank !== 'sample-bank-alpha' || final.betaConfigBank !== 'sample-bank-beta') fail('Imported bank state did not persist independently after switching back to K&S.');
-  if (final.visibleSyncButtons !== 1 || final.overflow) fail('One-button sync or layout consistency failed after multiple bank switches.');
+  if (final.visibleSyncButtons !== 1 || final.visibleSyncButtonIds[0] !== 'deviceSyncNow' || final.overflow) fail('One-button sync or layout consistency failed after multiple bank switches.');
   if (report.errors.length) fail(`Browser errors detected: ${report.errors.join(' | ')}`);
 
   report.passed = report.failures.length === 0;
