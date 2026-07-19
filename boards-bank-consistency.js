@@ -5,7 +5,8 @@
   const Store = window.BoardsStore;
   const C = window.BoardsCore;
   const BaseModel = window.BoardsQuestionBankModel;
-  if (!Config || !Store || !C || !BaseModel) throw new Error('Bank consistency dependencies are unavailable.');
+  const Banks = window.BoardsQuestionBankRegistry;
+  if (!Config || !Store || !C || !BaseModel || !Banks) throw new Error('Bank consistency dependencies are unavailable.');
 
   const Bank = Config.bank;
   const Keys = Config.storage.keys;
@@ -14,6 +15,49 @@
 
   function clone(value) {
     return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
+  }
+
+  function installStorageFirewall() {
+    if (window.__boardsStorageFirewallInstalled) return;
+    const prototype = Storage.prototype;
+    const nativeSetItem = prototype.setItem;
+    const nativeRemoveItem = prototype.removeItem;
+    const nativeClear = prototype.clear;
+    const selectionKey = Banks.selectionKey;
+
+    function isLocalStorage(target) {
+      try { return target === window.localStorage; } catch (_error) { return false; }
+    }
+
+    function isOtherBankKey(keyValue) {
+      const key = String(keyValue || '');
+      if (!key || key === selectionKey) return false;
+      if (Bank.legacyStorage) return key.indexOf('abpnBank:') === 0;
+      if (key.indexOf(Bank.storageNamespace) === 0) return false;
+      return key === 'kaplanBoardPrepState' || key.indexOf('ksBoards') === 0 || key.indexOf('abpnBank:') === 0;
+    }
+
+    prototype.setItem = function (key, value) {
+      if (isLocalStorage(this) && isOtherBankKey(key)) {
+        throw new Error('Cross-bank storage write blocked for key ' + key + ' while ' + Bank.title + ' is active.');
+      }
+      return nativeSetItem.call(this, key, value);
+    };
+
+    prototype.removeItem = function (key) {
+      if (isLocalStorage(this) && isOtherBankKey(key)) {
+        console.warn('Cross-bank storage deletion ignored.', { key: key, activeBankId: Bank.id });
+        return;
+      }
+      return nativeRemoveItem.call(this, key);
+    };
+
+    prototype.clear = function () {
+      if (isLocalStorage(this)) throw new Error('Blanket localStorage.clear() is prohibited because question-bank data must remain isolated.');
+      return nativeClear.call(this);
+    };
+
+    window.__boardsStorageFirewallInstalled = true;
   }
 
   function bankIdFor(record) {
@@ -261,6 +305,7 @@
     };
   }
 
+  installStorageFirewall();
   normalizeAll();
   Store.subscribe(function (change) {
     if (normalizing) return;
