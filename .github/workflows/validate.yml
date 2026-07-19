@@ -27,7 +27,7 @@ jobs:
       - name: Install browser smoke-test harness
         run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
       - name: Run desktop and mobile browser smoke tests
-        run: node scripts/browser-smoke.mjs
+        run: node scripts/browser-smoke-runner.mjs
       - name: Upload browser smoke results
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
