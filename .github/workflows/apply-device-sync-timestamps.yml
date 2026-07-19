@@ -1,6 +1,6 @@
 name: Apply device sync timestamp patch
 
-# Temporary branch-only migration. The job removes this workflow after applying the patch.
+# Temporary branch-only migration. The trusted main workflow applies and removes this file.
 on:
   push:
     branches: [feature/device-sync-timestamps]
