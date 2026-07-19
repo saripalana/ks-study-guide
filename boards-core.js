@@ -3,11 +3,13 @@
 
   const Config = window.BoardsConfig;
   const Store = window.BoardsStore;
-  if (!Config || !Store) throw new Error('BoardsConfig and BoardsStore must load before BoardsCore.');
+  const Registry = window.BoardsQuestionBankRegistry;
+  if (!Config || !Store || !Registry) throw new Error('BoardsConfig, BoardsStore, and BoardsQuestionBankRegistry must load before BoardsCore.');
 
   const VERSION = 'v3';
   const KEY = Config.storage.keys;
-  const fullBank = typeof QUESTIONS !== 'undefined' && Array.isArray(QUESTIONS) ? QUESTIONS.slice() : [];
+  const activeBank = Registry.activeBank();
+  const fullBank = Registry.activeQuestions();
   const byId = new Map(fullBank.map(function (question) { return [question.id, question]; }));
 
   function readJson(key, fallback) {
@@ -35,6 +37,10 @@
   function activeConfig() {
     const config = readJson(KEY.config, null);
     if (!config || !Array.isArray(config.ids)) return null;
+    const configBankId = String(config.bankId || Registry.defaultBankId);
+    if (configBankId !== activeBank.id) return null;
+    config.bankId = configBankId;
+    config.bankTitle = config.bankTitle || activeBank.title;
     config.ids = config.ids.filter(function (id) { return byId.has(id); });
     return config.ids.length ? config : null;
   }
@@ -100,7 +106,7 @@
     ids.forEach(function (id) {
       const answer = state.answered[id];
       if (!answer) return;
-      const next = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor' };
+      const next = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor', bankId: activeBank.id };
       if (!history[id] || history[id].status !== next.status) changed = true;
       history[id] = next;
     });
@@ -119,7 +125,7 @@
       const selected = state.testAnswers[id];
       const status = !selected ? 'omitted' : (selected === question.correctLetter ? 'correct' : 'incorrect');
       if (!history[id] || history[id].status !== status || history[id].source !== 'test') {
-        history[id] = { status: status, timestamp: now, source: 'test' };
+        history[id] = { status: status, timestamp: now, source: 'test', bankId: activeBank.id };
         changed = true;
       }
     });
@@ -138,7 +144,7 @@
       config.status = 'completed';
       config.completedAt = config.completedAt || Date.now();
       writeJson(KEY.config, config, { reason: 'Test completed' });
-      Store.milestone('Test completed', { setId: config.setId, total: config.ids.length });
+      Store.milestone('Test completed', { setId: config.setId, total: config.ids.length, bankId: activeBank.id });
     }
   }
 
@@ -169,6 +175,8 @@
     const config = {
       version: VERSION,
       schemaVersion: Config.schemaVersion,
+      bankId: activeBank.id,
+      bankTitle: activeBank.title,
       setId: 'set-' + now + '-' + Math.random().toString(36).slice(2, 8),
       ids: ids.slice(),
       mode: mode,
@@ -183,13 +191,14 @@
       questionTimes: {}
     };
     writeJson(KEY.config, config, { reason: 'Practice set created' });
-    Store.milestone('Practice set created', { setId: config.setId, total: ids.length, mode: mode });
+    Store.milestone('Practice set created', { setId: config.setId, total: ids.length, mode: mode, bankId: activeBank.id });
     return config;
   }
 
   window.BoardsCore = Object.freeze({
     VERSION: VERSION,
     KEY: KEY,
+    activeBank: activeBank,
     fullBank: fullBank,
     byId: byId,
     readJson: readJson,
