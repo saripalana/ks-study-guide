@@ -4,9 +4,12 @@
   const C = window.BoardsCore;
   const Views = window.BoardsDashboardViews;
   const Registry = window.BoardsDashboardRegistry;
-  if (!C || !Views || !Registry || !C.fullBank || !C.fullBank.length) return;
+  const Banks = window.BoardsQuestionBankRegistry;
+  const BankSelectorView = window.BoardsQuestionBankSelectorView;
+  if (!C || !Views || !Registry || !Banks || !BankSelectorView || !C.fullBank || !C.fullBank.length) return;
 
   const SETTINGS_KEY = C.KEY.settings;
+  const activeBank = Banks.activeBank();
   const allChapters = Array.from(new Map(C.fullBank.map(function (q) {
     return [String(q.chapter), {
       value: String(q.chapter),
@@ -63,6 +66,7 @@
 
   function saveBuilderSettings() {
     const previous = C.readJson(SETTINGS_KEY, {}) || {};
+    previous.bankId = activeBank.id;
     previous.pool = selectedPool;
     previous.chapters = Array.from(selectedChapters);
     C.writeJson(SETTINGS_KEY, previous);
@@ -108,7 +112,7 @@
       subjectSummary.textContent = subjectCount === allChapters.length ? 'All subjects selected' : subjectCount + ' of ' + allChapters.length + ' subjects selected';
     }
 
-    if (rangeText) rangeText.textContent = 'of ' + eligible.length + ' eligible questions';
+    if (rangeText) rangeText.textContent = 'of ' + eligible.length + ' eligible questions in ' + activeBank.shortTitle;
     if (countInput) {
       countInput.max = String(Math.max(1, eligible.length));
       const current = C.clampInteger(countInput.value, 40, 1, Math.max(1, eligible.length));
@@ -123,10 +127,44 @@
     }
   }
 
+  function confirmBankSwitch(bank) {
+    const config = C.activeConfig();
+    const currentSetMessage = config && config.status === 'in_progress' ? ' Your current ' + activeBank.shortTitle + ' set will remain saved and can be resumed when you switch back.' : '';
+    return confirm('Switch to ' + bank.title + '?' + currentSetMessage + ' Progress, tests, backups, and settings remain separate for each bank.');
+  }
+
+  function bindBankOptions(container) {
+    if (!container) return;
+    container.querySelectorAll('.question-bank-option[data-bank-id]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const bankId = button.getAttribute('data-bank-id');
+        const bank = Banks.get(bankId);
+        if (!bank || !bank.ready) return;
+        if (bank.id === activeBank.id) {
+          const details = container.querySelector('#questionBankSelector');
+          if (details) details.open = false;
+          return;
+        }
+        if (!confirmBankSwitch(bank)) return;
+        Banks.select(bank.id);
+      });
+    });
+  }
+
+  function refreshBankSelector() {
+    const container = document.getElementById('questionBankBuilderSection');
+    if (!container) return;
+    BankSelectorView.updateSelector(container, Banks.list(), activeBank);
+    bindBankOptions(container);
+  }
+
   function mountBuilderUi() {
     const existing = document.getElementById('uworldBuilderOptions');
     if (existing) return existing;
     const wrapper = Views.createBuilderOptions();
+    const bankSelector = BankSelectorView.createSelector(Banks.list(), activeBank);
+    wrapper.prepend(bankSelector);
+    bindBankOptions(bankSelector);
 
     wrapper.querySelector('#selectAllSubjects').addEventListener('click', function () {
       selectedChapters = new Set(allChapters.map(function (item) { return item.value; }));
@@ -185,11 +223,14 @@
 
       const kind = selectedPool === 'all' ? 'random' : selectedPool;
       const config = C.createConfig(ids, mode, timed, durationSeconds, kind);
+      config.bankId = activeBank.id;
+      config.bankTitle = activeBank.title;
       config.pool = selectedPool;
       config.chapters = Array.from(selectedChapters);
       C.writeJson(C.KEY.config, config);
 
       const previous = C.readJson(SETTINGS_KEY, {}) || {};
+      previous.bankId = activeBank.id;
       previous.count = requested;
       previous.mode = mode;
       previous.timing = timed ? 'timed' : 'untimed';
@@ -207,6 +248,7 @@
     replaceStartButton();
     updateBuilder();
 
+    window.addEventListener(Banks.catalogEvent, function () { setTimeout(refreshBankSelector, 0); });
     const observer = new MutationObserver(function () {
       if (!document.getElementById('questionPoolOptions')) injectBuilderUi();
       if (!document.querySelector('#startNewSetBtn[data-builder-ready="true"]')) replaceStartButton();
