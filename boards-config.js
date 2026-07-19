@@ -5,6 +5,8 @@
   const SELECTION_KEY = 'ksBoardsSelectedQuestionBankV1';
   const CATALOG_EVENT = 'ksboards:question-bank-catalog-changed';
   const ACTIVE_EVENT = 'ksboards:active-question-bank-changed';
+  const MAX_CARDS_PER_BANK = 5000;
+  const MAX_TOTAL_CARDS = 5000;
   const LEGACY_VAULT = Object.freeze({ datasetId: 'psychiatry-board-question-bank', testIndex: 'completed-tests-index.json' });
 
   function cleanId(value) {
@@ -13,16 +15,56 @@
     return id;
   }
 
+  function stableStringify(value) {
+    if (Array.isArray(value)) return '[' + value.map(stableStringify).join(',') + ']';
+    if (value && typeof value === 'object') {
+      return '{' + Object.keys(value).sort().map(function (key) { return JSON.stringify(key) + ':' + stableStringify(value[key]); }).join(',') + '}';
+    }
+    return JSON.stringify(value);
+  }
+
+  function hashString(input) {
+    let hash = 2166136261;
+    for (let index = 0; index < input.length; index += 1) {
+      hash ^= input.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  }
+
+  function questionFingerprint(questions) {
+    return hashString(stableStringify((questions || []).map(function (question) {
+      return {
+        id: String(question && question.id || ''),
+        chapter: Number(question && question.chapter),
+        qnum: Number(question && question.qnum),
+        question: String(question && question.question || ''),
+        choices: Array.isArray(question && question.choices) ? question.choices.map(String) : [],
+        choiceLetters: Array.isArray(question && question.choiceLetters) ? question.choiceLetters.map(String) : [],
+        correctLetter: String(question && question.correctLetter || ''),
+        explanation: String(question && question.explanation || '')
+      };
+    })));
+  }
+
   function createRegistry(initialQuestions) {
     const catalog = new Map();
 
     function validateQuestions(questions, bankId) {
       const ids = new Set();
+      if (!Array.isArray(questions)) throw new Error('Question bank ' + bankId + ' does not contain a question array.');
+      if (questions.length > MAX_CARDS_PER_BANK) throw new Error('Question bank ' + bankId + ' exceeds the ' + MAX_CARDS_PER_BANK + '-question limit.');
       questions.forEach(function (question, index) {
-        const id = question && question.id != null ? String(question.id).trim() : '';
-        if (!id) throw new Error('Question ' + (index + 1) + ' in ' + bankId + ' has no stable id.');
+        const label = 'Question ' + (index + 1) + ' in ' + bankId;
+        if (!question || typeof question !== 'object') throw new Error(label + ' is not a valid object.');
+        const id = question.id != null ? String(question.id).trim() : '';
+        if (!id) throw new Error(label + ' has no stable id.');
         if (ids.has(id)) throw new Error('Duplicate question id in ' + bankId + ': ' + id);
         ids.add(id);
+        if (typeof question.question !== 'string' || !question.question.trim()) throw new Error(id + ' has no question text.');
+        if (!Array.isArray(question.choices) || question.choices.length < 2) throw new Error(id + ' needs at least two answer choices.');
+        if (!Array.isArray(question.choiceLetters) || question.choiceLetters.length !== question.choices.length) throw new Error(id + ' has mismatched choices and choice letters.');
+        if (question.choiceLetters.indexOf(question.correctLetter) < 0) throw new Error(id + ' has a correct answer outside its answer choices.');
       });
     }
 
@@ -34,11 +76,13 @@
       value.description = String(value.description || '');
       value.status = String(value.status || 'active');
       value.source = String(value.source || 'static');
+      value.sourceFile = String(value.sourceFile || value.source || '');
       value.legacyStorage = value.legacyStorage === true;
       value.questions = Array.isArray(value.questions) ? value.questions.slice() : [];
       validateQuestions(value.questions, value.id);
       value.ready = value.status === 'active' && value.questions.length > 0;
       value.questionCount = value.questions.length;
+      value.questionHash = questionFingerprint(value.questions);
       return Object.freeze(value);
     }
 
@@ -50,10 +94,18 @@
         description: definition.description,
         status: definition.status,
         source: definition.source,
+        sourceFile: definition.sourceFile,
         legacyStorage: definition.legacyStorage,
         ready: definition.ready,
-        questionCount: definition.questionCount
+        questionCount: definition.questionCount,
+        questionHash: definition.questionHash
       });
+    }
+
+    function enforceTotalCapacity() {
+      const total = Array.from(catalog.values()).reduce(function (sum, bank) { return sum + bank.questionCount; }, 0);
+      if (total > MAX_TOTAL_CARDS) throw new Error('Registered question banks contain ' + total + ' questions, exceeding the ' + MAX_TOTAL_CARDS + '-question platform limit.');
+      return total;
     }
 
     function list() {
@@ -76,6 +128,12 @@
         throw new Error('A conflicting definition already exists for question bank ' + normalized.id + '.');
       }
       catalog.set(normalized.id, normalized);
+      try { enforceTotalCapacity(); }
+      catch (error) {
+        if (!existing) catalog.delete(normalized.id);
+        else catalog.set(existing.id, existing);
+        throw error;
+      }
       if (!(options && options.silent)) emit(CATALOG_EVENT, { bank: publicDefinition(normalized), banks: list() });
       return publicDefinition(normalized);
     }
@@ -86,7 +144,8 @@
       shortTitle: 'K&S Psychiatry',
       description: 'The original K&S psychiatry study question bank.',
       status: 'active',
-      source: 'data.js',
+      source: 'Kaplan & Sadock study guide import',
+      sourceFile: 'data.js',
       legacyStorage: true,
       questions: Array.isArray(initialQuestions) ? initialQuestions : []
     }, { silent: true });
@@ -101,8 +160,12 @@
     }
 
     function activeInternal() {
-      const requested = catalog.get(selectedId());
+      const requestedId = selectedId();
+      const requested = catalog.get(requestedId);
       if (requested && requested.ready) return requested;
+      if (requestedId !== DEFAULT_BANK_ID) {
+        try { localStorage.setItem(SELECTION_KEY, DEFAULT_BANK_ID); } catch (_error) { /* storage may be unavailable */ }
+      }
       return catalog.get(DEFAULT_BANK_ID);
     }
 
@@ -152,6 +215,7 @@
       activeQuestions: function () { return activeInternal().questions.slice(); },
       select: select,
       storageNamespace: storageNamespace,
+      totalCards: enforceTotalCapacity,
       applyIdentity: applyIdentity
     });
 
@@ -191,14 +255,17 @@
     return Object.freeze({
       projectId: 'psychiatry-board-practice',
       appName: 'Psychiatry Board Practice',
-      build: '2026.07.19.1',
-      schemaVersion: 2,
+      build: '2026.07.19.2',
+      schemaVersion: 3,
       bank: Object.freeze({
         id: activeBank.id,
         title: activeBank.title,
         shortTitle: activeBank.shortTitle,
         description: activeBank.description,
+        source: activeBank.source,
+        sourceFile: activeBank.sourceFile,
         questionCount: activeBank.questionCount,
+        questionHash: activeBank.questionHash,
         legacyStorage: activeBank.legacyStorage,
         storageNamespace: namespace
       }),
@@ -217,12 +284,17 @@
         retryLimit: 3
       }),
       questionVault: Object.freeze({
-        schemaVersion: 1,
+        schemaVersion: 2,
         datasetId: legacy ? LEGACY_VAULT.datasetId : LEGACY_VAULT.datasetId + '-' + activeBank.id,
         bankId: activeBank.id,
         bankTitle: activeBank.title,
+        bankQuestionHash: activeBank.questionHash,
         bankFolder: activeBank.id,
+        banksFolder: 'Banks',
+        legacyLayout: legacy,
         repository: 'saripalana/ks-study-guide',
+        source: activeBank.source,
+        sourceFile: activeBank.sourceFile,
         stagingBranch: 'question-bank-staging',
         scope: 'https://www.googleapis.com/auth/drive.file',
         rootFolder: 'Psychiatry Board Question Vault',
@@ -238,8 +310,8 @@
         performanceSyncMinMs: 60000
       }),
       exam: Object.freeze({ name: 'ABPN Psychiatry Certification Examination', date: '2026-09-08', displayDate: 'September 8, 2026', countdownBoundary: 'browser-local-midnight' }),
-      hardReset: Object.freeze({ passcodeSha256: 'b625d589e853d767a8b042f3dafe9f03ebe267bc7da314b99a7600c3070d2957', confirmationPhrase: 'RESET ALL STUDY DATA' }),
-      limits: Object.freeze({ savedTests: 50, localBackups: 12, deletedTestTombstones: 300, maxCardsPerBank: 5000, maxTotalCards: 5000 }),
+      hardReset: Object.freeze({ passcodeSha256: 'b625d589e853d767a8b042f3dafe9f03ebe267bc7da314b99a7600c3070d2957', confirmationPhrase: 'RESET ALL STUDY DATA', scope: 'active-bank' }),
+      limits: Object.freeze({ savedTests: 50, localBackups: 12, deletedTestTombstones: 300, maxCardsPerBank: MAX_CARDS_PER_BANK, maxTotalCards: MAX_TOTAL_CARDS }),
       events: Object.freeze({ storageChanged: 'ksboards:storage-changed', milestone: 'ksboards:milestone', ready: 'ksboards:ready', bankCatalogChanged: Registry.catalogEvent, activeBankChanged: Registry.activeEvent })
     });
   }
