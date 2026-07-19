@@ -4,7 +4,9 @@
   const Config = window.BoardsConfig;
   const Store = window.BoardsStore;
   const Model = window.BoardsQuestionBankModel;
-  if (!Config || !Store || !Model || !Config.hardReset || !Config.questionVault) return;
+  const Panels = window.BoardsPanelTemplates;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Store || !Model || !Panels || !Registry || !Config.hardReset || !Config.questionVault) return;
 
   const Reset = Config.hardReset;
   const Vault = Config.questionVault;
@@ -12,11 +14,6 @@
   let accessToken = '';
   let running = false;
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function timestampName() {
     return new Date().toISOString().replace(/[:.]/g, '-');
@@ -29,65 +26,24 @@
     element.className = 'drive-backup-status ' + (tone || 'neutral');
   }
 
-  function addStyles() {
-    if (document.getElementById('hardResetCss')) return;
-    const style = document.createElement('style');
-    style.id = 'hardResetCss';
-    style.textContent =
-      '.hard-reset-card{border-color:#e1b4b4;background:#fffafa}' +
-      '.hard-reset-warning{margin-top:12px;padding:11px 12px;border-left:4px solid #b53232;background:#fff0f0;border-radius:5px;color:#742020;font-size:12px;line-height:1.5}' +
-      '.hard-reset-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(10,24,41,.58)}' +
-      '.hard-reset-modal[hidden]{display:none}' +
-      '.hard-reset-dialog{width:min(610px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.28);padding:24px}' +
-      '.hard-reset-dialog h2{margin:0 0 8px;color:#7f2020}' +
-      '.hard-reset-dialog p{color:var(--muted);line-height:1.55}' +
-      '.hard-reset-field{display:block;margin-top:15px;font-size:12px;font-weight:750;color:var(--navy-dark)}' +
-      '.hard-reset-field input[type=password],.hard-reset-field input[type=text]{display:block;width:100%;margin-top:6px;padding:10px 11px;border:1px solid var(--border);border-radius:7px;font:inherit}' +
-      '.hard-reset-check{display:flex;align-items:flex-start;gap:9px;margin-top:16px;font-size:12px;line-height:1.45;color:#5d3c3c}' +
-      '.hard-reset-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:20px;flex-wrap:wrap}' +
-      '.hard-reset-code-note{font-size:11px;color:var(--muted);margin-top:7px}' +
-      '@media(max-width:620px){.hard-reset-actions>*{flex:1 1 150px}}';
-    document.head.appendChild(style);
+
+  function mountUi() {
+    const existing = document.getElementById('hardResetCard');
+    if (existing) return existing;
+    const card = Panels.createHardResetCard();
+    const modal = Panels.createHardResetModal(Reset.confirmationPhrase);
+    document.body.appendChild(modal);
+
+    card.querySelector('#openHardReset').addEventListener('click', openModal);
+    modal.querySelector('#cancelHardReset').addEventListener('click', closeModal);
+    modal.querySelector('#confirmHardReset').addEventListener('click', beginReset);
+    modal.addEventListener('click', function (event) { if (event.target === modal && !running) closeModal(); });
+    return card;
   }
 
   function ensureUi() {
     if (document.getElementById('hardResetCard')) return;
-    const section = document.getElementById('progressManagementSection');
-    if (!section) return;
-    addStyles();
-
-    const card = document.createElement('article');
-    card.id = 'hardResetCard';
-    card.className = 'dashboard-card hard-reset-card';
-    card.innerHTML =
-      '<div class="card-heading-row"><div><div class="card-kicker">FRESH START</div><h3>Absolute reset of active study data</h3>' +
-      '<p class="field-help">Clears answers, flags, tests, timing, analytics, active sets, local recovery records, and the active cloud performance state. The original question bank and archived recovery history remain protected.</p></div></div>' +
-      '<button type="button" id="openHardReset" class="danger-button">Open absolute reset</button>' +
-      '<div class="hard-reset-warning"><strong>High-impact action:</strong> a recovery file and cloud archives are created first. The configured code is only an accidental-click safeguard because this public website’s JavaScript can be inspected.</div>' +
-      '<div id="hardResetStatus" class="drive-backup-status neutral">No absolute reset is pending.</div>';
-    section.appendChild(card);
-
-    const modal = document.createElement('div');
-    modal.id = 'hardResetModal';
-    modal.className = 'hard-reset-modal';
-    modal.hidden = true;
-    modal.innerHTML =
-      '<div class="hard-reset-dialog" role="dialog" aria-modal="true" aria-labelledby="hardResetTitle">' +
-      '<h2 id="hardResetTitle">Start completely fresh?</h2>' +
-      '<p>This resets active personal study data in this browser, the hidden Drive backup, and the visible Question Vault performance files. Historical cloud archives and the original GitHub question source are retained for recovery.</p>' +
-      '<label class="hard-reset-field">Reset code<input id="hardResetCode" type="password" autocomplete="off" spellcheck="false"></label>' +
-      '<div class="hard-reset-code-note">This is a confirmation code, not a secure account password.</div>' +
-      '<label class="hard-reset-field">Type <strong>' + escapeHtml(Reset.confirmationPhrase) + '</strong><input id="hardResetPhrase" type="text" autocomplete="off" spellcheck="false"></label>' +
-      '<label class="hard-reset-check"><input id="hardResetUnderstand" type="checkbox"><span>I understand that all active progress and test records will restart at zero, and that I may need to reconnect Google Drive after the reset.</span></label>' +
-      '<div id="hardResetModalStatus" class="drive-backup-status neutral">The reset has not started.</div>' +
-      '<div class="hard-reset-actions"><button type="button" id="cancelHardReset" class="secondary-button">Cancel</button><button type="button" id="confirmHardReset" class="danger-button">Archive and reset everything</button></div>' +
-      '</div>';
-    document.body.appendChild(modal);
-
-    document.getElementById('openHardReset').addEventListener('click', openModal);
-    document.getElementById('cancelHardReset').addEventListener('click', closeModal);
-    document.getElementById('confirmHardReset').addEventListener('click', beginReset);
-    modal.addEventListener('click', function (event) { if (event.target === modal && !running) closeModal(); });
+    Registry.register({ id: 'absolute-reset', region: 'data-tools', order: 150, mount: mountUi });
   }
 
   function modalStatus(message, tone) {

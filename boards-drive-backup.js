@@ -4,7 +4,9 @@
   const Config = window.BoardsConfig;
   const Store = window.BoardsStore;
   const C = window.BoardsCore;
-  if (!Config || !Store || !C) throw new Error('Drive backup dependencies are unavailable.');
+  const Panels = window.BoardsPanelTemplates;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Store || !C || !Panels || !Registry) throw new Error('Drive backup dependencies are unavailable.');
 
   const Drive = Config.drive;
   const Keys = Config.storage.keys;
@@ -36,11 +38,6 @@
     return value;
   }
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function formatDate(value) {
     if (!value) return 'Never';
@@ -115,26 +112,23 @@
     renderCloudHistory();
   }
 
+  function mountUi() {
+    const existing = document.getElementById('driveBackupSection');
+    if (existing) return existing;
+    const section = Panels.createDriveBackupSection();
+    section.querySelector('#connectGoogleDrive').addEventListener('click', connectDrive);
+    section.querySelector('#driveBackupNow').addEventListener('click', function () { manualBackup().catch(handleError); });
+    section.querySelector('#driveRestoreLatest').addEventListener('click', function () { restoreLatest().catch(handleError); });
+    section.querySelector('#disconnectGoogleDrive').addEventListener('click', function () { disconnectSession('Disconnected from Google Drive for this browser session.'); });
+    section.querySelector('#revokeGoogleDrive').addEventListener('click', revokeAccess);
+    section.querySelector('#driveAutoBackup').addEventListener('change', function (event) { saveSettings({ autoBackup: !!event.target.checked }); if (event.target.checked) scheduleAutoBackup(500); });
+    setTimeout(updateUi, 0);
+    return section;
+  }
+
   function ensureUi() {
     if (document.getElementById('driveBackupSection')) return;
-    const column = document.querySelector('.dashboard-column-wide');
-    if (!column) return;
-    const style = document.createElement('style');
-    style.id = 'driveBackupCss';
-    style.textContent = '.drive-backup-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.drive-backup-status{margin-top:12px;padding:10px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:#f7f9fb;color:var(--muted)}.drive-backup-status.good{background:#edf8f1;border-color:#abd6ba;color:#17633a}.drive-backup-status.warning{background:#fff8e8;border-color:#e5c778;color:#765500}.drive-backup-status.error{background:#fff0f0;border-color:#e7b0b0;color:#8d2626}.drive-backup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.drive-backup-detail{padding:11px;border:1px solid var(--border);border-radius:6px;background:#f8fafc;font-size:12px;color:var(--muted)}.drive-backup-detail strong{display:block;margin-bottom:4px;color:var(--navy-dark)}.drive-auto-row{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:12px;color:var(--muted)}.cloud-history-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-top:1px solid var(--border)}.cloud-history-row:first-child{border-top:0}.cloud-history-row span{display:block;margin-top:3px;color:var(--muted);font-size:11px}@media(max-width:700px){.drive-backup-grid{grid-template-columns:1fr}.cloud-history-row{align-items:flex-start;flex-direction:column}}';
-    document.head.appendChild(style);
-    const section = document.createElement('section');
-    section.id = 'driveBackupSection';
-    section.innerHTML = '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">GOOGLE DRIVE</div><h3>Private cloud backup</h3><p class="field-help">Stores only compact study progress in the hidden Google Drive app-data area. It cannot browse your normal Drive files.</p></div></div><div class="drive-backup-actions"><button type="button" id="connectGoogleDrive" class="primary-button">Connect Google Drive</button><button type="button" id="driveBackupNow" class="secondary-button" disabled>Back up now</button><button type="button" id="driveRestoreLatest" class="secondary-button" disabled>Restore latest Drive backup</button><button type="button" id="disconnectGoogleDrive" class="secondary-button" disabled>Disconnect session</button><button type="button" id="revokeGoogleDrive" class="secondary-button" disabled>Revoke Google access</button></div><label class="drive-auto-row"><input type="checkbox" id="driveAutoBackup" checked> Automatically update the current backup at most once every 30 seconds while connected</label><div id="driveBackupStatus" class="drive-backup-status neutral">Not connected. Access tokens remain only in temporary page memory.</div><div class="drive-backup-grid"><div class="drive-backup-detail"><strong id="driveLastSync">Last successful sync: Never</strong><span>The current-state file is overwritten efficiently rather than duplicated after each answer.</span></div><div class="drive-backup-detail"><strong>Drive contents</strong><span id="driveCloudSummary">Connect to inspect your hidden Drive backup.</span></div></div></article><article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">CLOUD RECOVERY</div><h3>Historical Drive snapshots</h3><p class="field-help">A rolling history is added after completed tests, resets, deletions, restores, and manual backups—not after every answer.</p></div></div><div id="driveCloudHistory"><div class="analytics-empty">Connect Google Drive to load cloud history.</div></div></article>';
-    const maintenance = document.getElementById('progressManagementSection');
-    if (maintenance && maintenance.parentNode === column) maintenance.insertAdjacentElement('afterend', section); else column.appendChild(section);
-    document.getElementById('connectGoogleDrive').addEventListener('click', connectDrive);
-    document.getElementById('driveBackupNow').addEventListener('click', function () { manualBackup().catch(handleError); });
-    document.getElementById('driveRestoreLatest').addEventListener('click', function () { restoreLatest().catch(handleError); });
-    document.getElementById('disconnectGoogleDrive').addEventListener('click', function () { disconnectSession('Disconnected from Google Drive for this browser session.'); });
-    document.getElementById('revokeGoogleDrive').addEventListener('click', revokeAccess);
-    document.getElementById('driveAutoBackup').addEventListener('change', function (event) { saveSettings({ autoBackup: !!event.target.checked }); if (event.target.checked) scheduleAutoBackup(500); });
-    updateUi();
+    Registry.register({ id: 'private-drive-backup', region: 'data-tools', order: 200, mount: mountUi });
   }
 
   function tokenValid() { return !!accessToken && Date.now() < tokenExpiresAt - 30000; }
@@ -332,13 +326,9 @@
   function renderCloudHistory() {
     const container = document.getElementById('driveCloudHistory');
     if (!container) return;
-    if (!connected) { container.innerHTML = '<div class="analytics-empty">Connect Google Drive to load cloud history.</div>'; return; }
+    if (!connected) { container.innerHTML = Panels.emptyState('Connect Google Drive to load cloud history.'); return; }
     const list = remoteHistory.snapshots || [];
-    if (!list.length) { container.innerHTML = '<div class="analytics-empty">No historical Drive snapshots yet.</div>'; return; }
-    container.innerHTML = list.slice(0, 10).map(function (record) {
-      const info = summary(record.state);
-      return '<div class="cloud-history-row"><div><strong>' + escapeHtml(record.reason || 'Cloud snapshot') + '</strong><span>' + escapeHtml(formatDate(record.createdAt)) + ' · ' + info.questions + ' questions · ' + info.tests + ' saved tests</span></div><button type="button" class="secondary-button restore-cloud-history" data-id="' + escapeHtml(record.id) + '">Restore</button></div>';
-    }).join('');
+    container.innerHTML = Panels.cloudHistoryRows(list, formatDate, summary);
     container.querySelectorAll('.restore-cloud-history').forEach(function (button) { button.addEventListener('click', function () { restoreHistory(button.getAttribute('data-id')).catch(handleError); }); });
   }
 

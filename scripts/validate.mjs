@@ -18,7 +18,7 @@ for (const asset of localAssets) {
 
 const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
-  'ui/dashboard-registry.js', 'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js',
+  'ui/dashboard-registry.js', 'ui/panel-templates.js', 'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js',
   'boards-analytics.js', 'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js',
   'boards-safety.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js',
   'boards-drive-backup.js', 'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
@@ -31,6 +31,8 @@ for (const script of scriptOrder) {
   lastIndex = index;
 }
 if (!html.includes('strict-origin-when-cross-origin')) fail('The strict referrer policy is missing from boards.html.');
+if (!html.includes('data-dashboard-region="data-tools"')) fail('The dashboard data-tools region is missing.');
+if (!html.includes('./styles/feature-panels.css')) fail('The feature-panel stylesheet is missing from boards.html.');
 if (!html.includes('data-dashboard-region="welcome-tools"')) fail('The welcome-tools dashboard region is missing.');
 if (!html.includes('./styles/tokens.css')) fail('The centralized design-token stylesheet is missing.');
 if (!html.includes('./styles/ui-foundation.css')) fail('The UI-foundation stylesheet is missing.');
@@ -157,6 +159,25 @@ for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'b
 }
 if (countdownCode.includes("createElement('style')") || countdownCode.includes('examCountdownCss')) {
   fail('Countdown styling must remain separate from countdown behavior.');
+}
+
+const panelTemplateCode = read('ui/panel-templates.js');
+for (const factory of [
+  'createProgressManagementSection', 'createDriveBackupSection', 'createQuestionVaultSection',
+  'createHardResetCard', 'createHardResetModal'
+]) {
+  if (!panelTemplateCode.includes(factory)) fail(`Shared panel template is missing: ${factory}`);
+}
+for (const operationalModule of [
+  'boards-maintenance.js', 'boards-drive-backup.js', 'boards-question-vault.js', 'boards-hard-reset.js'
+]) {
+  const moduleCode = read(operationalModule);
+  if (moduleCode.includes("createElement('style')") || moduleCode.includes('style.textContent')) {
+    fail(`${operationalModule} must not inject presentation CSS.`);
+  }
+  if (!moduleCode.includes('BoardsPanelTemplates') || !moduleCode.includes('BoardsDashboardRegistry')) {
+    fail(`${operationalModule} must use shared panel templates and dashboard regions.`);
+  }
 }
 
 const modelCode = read('boards-question-bank-model.js');
