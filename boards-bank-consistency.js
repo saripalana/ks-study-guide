@@ -13,9 +13,7 @@
   const quarantineKey = (Bank.storageNamespace || 'ksBoards') + 'QuarantinedCrossBankRecordsV1';
   let normalizing = false;
 
-  function clone(value) {
-    return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
-  }
+  function clone(value) { return value === undefined ? undefined : JSON.parse(JSON.stringify(value)); }
 
   function installStorageFirewall() {
     if (window.__boardsStorageFirewallInstalled) return;
@@ -38,12 +36,9 @@
     }
 
     prototype.setItem = function (key, value) {
-      if (isLocalStorage(this) && isOtherBankKey(key)) {
-        throw new Error('Cross-bank storage write blocked for key ' + key + ' while ' + Bank.title + ' is active.');
-      }
+      if (isLocalStorage(this) && isOtherBankKey(key)) throw new Error('Cross-bank storage write blocked for key ' + key + ' while ' + Bank.title + ' is active.');
       return nativeSetItem.call(this, key, value);
     };
-
     prototype.removeItem = function (key) {
       if (isLocalStorage(this) && isOtherBankKey(key)) {
         console.warn('Cross-bank storage deletion ignored.', { key: key, activeBankId: Bank.id });
@@ -51,19 +46,16 @@
       }
       return nativeRemoveItem.call(this, key);
     };
-
     prototype.clear = function () {
       if (isLocalStorage(this)) throw new Error('Blanket localStorage.clear() is prohibited because question-bank data must remain isolated.');
       return nativeClear.call(this);
     };
-
     window.__boardsStorageFirewallInstalled = true;
   }
 
   function bankIdFor(record) {
     const explicit = String(record && record.bankId || '').trim().toLowerCase();
-    if (explicit) return explicit;
-    return Bank.legacyStorage ? Bank.id : '';
+    return explicit || (Bank.legacyStorage ? Bank.id : '');
   }
 
   function quarantine(type, records) {
@@ -72,11 +64,8 @@
     const list = Array.isArray(existing) ? existing : [];
     list.unshift({
       id: 'quarantine-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7),
-      createdAt: Date.now(),
-      activeBankId: Bank.id,
-      activeBankTitle: Bank.title,
-      type: type,
-      records: clone(records)
+      createdAt: Date.now(), activeBankId: Bank.id, activeBankTitle: Bank.title,
+      type: type, records: clone(records)
     });
     localStorage.setItem(quarantineKey, JSON.stringify(list.slice(0, 10)));
     console.error('Cross-bank records were quarantined instead of being displayed or overwritten.', { type: type, count: records.length, bankId: Bank.id });
@@ -93,18 +82,14 @@
   function normalizeConfig() {
     const config = Store.read(Keys.config, null);
     if (!config || typeof config !== 'object') return false;
-    const recordBankId = bankIdFor(config);
-    if (!recordBankId || recordBankId !== Bank.id) {
+    if (bankIdFor(config) !== Bank.id) {
       quarantine('active-config', [config]);
       Store.remove(Keys.config, { reason: 'Cross-bank active set quarantined' });
       return true;
     }
     const before = JSON.stringify(config);
     stamp(config);
-    if (JSON.stringify(config) !== before) {
-      Store.write(Keys.config, config, { reason: 'Active-set bank identity normalized' });
-      return true;
-    }
+    if (JSON.stringify(config) !== before) { Store.write(Keys.config, config, { reason: 'Active-set bank identity normalized' }); return true; }
     return false;
   }
 
@@ -113,10 +98,7 @@
     if (!settings || typeof settings !== 'object') return false;
     const before = JSON.stringify(settings);
     stamp(settings);
-    if (JSON.stringify(settings) !== before) {
-      Store.write(Keys.settings, settings, { reason: 'Practice-builder bank identity normalized' });
-      return true;
-    }
+    if (JSON.stringify(settings) !== before) { Store.write(Keys.settings, settings, { reason: 'Practice-builder bank identity normalized' }); return true; }
     return false;
   }
 
@@ -129,11 +111,8 @@
     Object.keys(history).forEach(function (questionId) {
       const item = history[questionId];
       if (!item || typeof item !== 'object') { changed = true; return; }
-      const recordBankId = bankIdFor(item);
-      if (!recordBankId || recordBankId !== Bank.id || !C.byId.has(questionId)) {
-        rejected.push({ questionId: questionId, value: item });
-        changed = true;
-        return;
+      if (bankIdFor(item) !== Bank.id || !C.byId.has(questionId)) {
+        rejected.push({ questionId: questionId, value: item }); changed = true; return;
       }
       const copy = Object.assign({}, item);
       stamp(copy);
@@ -147,30 +126,22 @@
 
   function normalizeTests() {
     const tests = Store.read(Keys.tests, []);
-    if (!Array.isArray(tests)) {
-      Store.write(Keys.tests, [], { reason: 'Invalid completed-test history repaired' });
-      return true;
-    }
+    if (!Array.isArray(tests)) { Store.write(Keys.tests, [], { reason: 'Invalid completed-test history repaired' }); return true; }
     const output = [];
     const rejected = [];
     let changed = false;
     tests.forEach(function (test) {
       if (!test || typeof test !== 'object' || !test.setId) { changed = true; return; }
-      const recordBankId = bankIdFor(test);
-      if (!recordBankId || recordBankId !== Bank.id) {
-        rejected.push(test);
-        changed = true;
-        return;
-      }
+      if (bankIdFor(test) !== Bank.id) { rejected.push(test); changed = true; return; }
       const copy = Object.assign({}, test);
       stamp(copy);
       copy.ids = Array.isArray(copy.ids) ? copy.ids.filter(function (id) { return C.byId.has(id); }) : [];
-      const filteredResults = {};
+      const results = {};
       Object.keys(copy.results || {}).forEach(function (id) {
         if (!C.byId.has(id)) { changed = true; return; }
-        filteredResults[id] = Object.assign({ bankId: Bank.id }, copy.results[id] || {});
+        results[id] = Object.assign({ bankId: Bank.id }, copy.results[id] || {});
       });
-      copy.results = filteredResults;
+      copy.results = results;
       if (JSON.stringify(copy) !== JSON.stringify(test)) changed = true;
       output.push(copy);
     });
@@ -204,25 +175,15 @@
   function normalizeAll() {
     if (normalizing) return;
     normalizing = true;
-    try {
-      normalizeConfig();
-      normalizeSettings();
-      normalizeHistory();
-      normalizeTests();
-      normalizeBackups();
-    } finally {
-      normalizing = false;
-    }
+    try { normalizeConfig(); normalizeSettings(); normalizeHistory(); normalizeTests(); normalizeBackups(); }
+    finally { normalizing = false; }
   }
 
   function addPackageIdentity(payload) {
-    const value = Object.assign({}, payload || {});
-    value.bankId = Bank.id;
-    value.bankTitle = Bank.title;
-    value.bankShortTitle = Bank.shortTitle;
-    value.bankQuestionHash = Bank.questionHash;
-    value.datasetId = Config.questionVault.datasetId;
-    return value;
+    return Object.assign({}, payload || {}, {
+      bankId: Bank.id, bankTitle: Bank.title, bankShortTitle: Bank.shortTitle,
+      bankQuestionHash: Bank.questionHash, datasetId: Config.questionVault.datasetId
+    });
   }
 
   const Model = Object.freeze({
@@ -232,12 +193,8 @@
     buildMasterPackage: function () {
       const payload = addPackageIdentity(BaseModel.buildMasterPackage());
       payload.source = Object.assign({}, payload.source || {}, {
-        repository: Config.questionVault.repository,
-        branch: 'main',
-        file: Bank.sourceFile,
-        label: Bank.source,
-        build: Config.build,
-        stagingBranch: Config.questionVault.stagingBranch
+        repository: Config.questionVault.repository, branch: 'main', file: Bank.sourceFile,
+        label: Bank.source, build: Config.build, stagingBranch: Config.questionVault.stagingBranch
       });
       return payload;
     },
@@ -246,9 +203,7 @@
       payload.sourceBuild = Config.build;
       return payload;
     },
-    buildCorrelatedPackage: function (master, performance) {
-      return addPackageIdentity(BaseModel.buildCorrelatedPackage(master, performance));
-    },
+    buildCorrelatedPackage: function (master, performance) { return addPackageIdentity(BaseModel.buildCorrelatedPackage(master, performance)); },
     validatePackage: function (packageValue) {
       const result = BaseModel.validatePackage(packageValue);
       const packageBankId = String(packageValue && packageValue.bankId || '').trim().toLowerCase();
@@ -283,8 +238,8 @@
     setText('#questionVaultSection .dashboard-card:nth-child(2) h3', Bank.shortTitle + ' draft workspace');
     setText('#hardResetCard h3', 'Absolute reset — ' + Bank.shortTitle);
     setText('#hardResetTitle', 'Start ' + Bank.shortTitle + ' completely fresh?');
-    const resetParagraph = document.querySelector('#hardResetModal .hard-reset-dialog > p');
-    if (resetParagraph) resetParagraph.textContent = 'This resets only ' + Bank.title + ' active study data in this browser, its hidden Drive backup, and its visible Question Vault performance files. Other question banks, historical cloud archives, and the original GitHub question source remain protected.';
+    const resetText = 'This resets only ' + Bank.title + ' active study data in this browser, its hidden Drive backup, and its visible Question Vault performance files. Other question banks, historical cloud archives, and the original GitHub question source remain protected.';
+    setText('#hardResetModal .hard-reset-dialog > p', resetText);
   }
 
   function validateCurrentState() {
@@ -295,31 +250,17 @@
     if (Array.isArray(tests)) tests.forEach(function (test) { if (bankIdFor(test) !== Bank.id) failures.push('Completed test ' + (test && test.setId || 'unknown') + ' belongs to another bank.'); });
     const history = Store.read(Keys.history, {});
     Object.keys(history || {}).forEach(function (id) { if (bankIdFor(history[id]) !== Bank.id) failures.push('Question history ' + id + ' belongs to another bank.'); });
-    return {
-      valid: failures.length === 0,
-      bankId: Bank.id,
-      bankTitle: Bank.title,
-      questionCount: C.fullBank.length,
-      completedTests: Array.isArray(tests) ? tests.length : 0,
-      failures: failures
-    };
+    return { valid: failures.length === 0, bankId: Bank.id, bankTitle: Bank.title, questionCount: C.fullBank.length, completedTests: Array.isArray(tests) ? tests.length : 0, failures: failures };
   }
 
   installStorageFirewall();
   normalizeAll();
   Store.subscribe(function (change) {
-    if (normalizing) return;
-    if ([Keys.config, Keys.settings, Keys.history, Keys.tests, Keys.localBackups].indexOf(change.key) >= 0) normalizeAll();
+    if (!normalizing && [Keys.config, Keys.settings, Keys.history, Keys.tests, Keys.localBackups].indexOf(change.key) >= 0) normalizeAll();
   });
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateUi);
-  else decorateUi();
-  new MutationObserver(function () { decorateUi(); }).observe(document.documentElement, { childList: true, subtree: true });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decorateUi); else decorateUi();
+  new MutationObserver(decorateUi).observe(document.documentElement, { childList: true, subtree: true });
 
-  window.BoardsBankConsistency = Object.freeze({
-    normalizeAll: normalizeAll,
-    validateCurrentState: validateCurrentState,
-    quarantineKey: quarantineKey,
-    activeBank: Bank
-  });
+  window.BoardsBankConsistency = Object.freeze({ normalizeAll: normalizeAll, validateCurrentState: validateCurrentState, quarantineKey: quarantineKey, activeBank: Bank });
 })();
