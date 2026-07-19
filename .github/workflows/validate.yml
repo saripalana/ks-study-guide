@@ -24,6 +24,16 @@ jobs:
           node scripts/validate.mjs 2>&1 | tee validation-report.txt
           status=${PIPESTATUS[0]}
           exit $status
+      - name: Upload browser-test bundle
+        if: success() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-browser-test-bundle
+          path: |
+            .
+            !.git
+            !validation-report.txt
+          retention-days: 3
       - name: Upload validation report on failure
         if: failure()
         uses: actions/upload-artifact@v4
