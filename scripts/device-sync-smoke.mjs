@@ -66,61 +66,88 @@ try {
     } else request.continue();
   });
 
+  const localChangedAt = Date.UTC(2026, 6, 19, 6, 30, 15);
   const sentinel = { answered: { 'k-1.1': { selectedLetter: 'A', correct: true } }, testAnswers: {}, testSubmitted: {}, flagged: {}, missed: {}, atSummary: false, index: 0, view: 'study' };
-  await page.evaluateOnNewDocument((value) => localStorage.setItem('kaplanBoardPrepState', JSON.stringify(value)), sentinel);
+  await page.evaluateOnNewDocument((values) => {
+    localStorage.setItem('kaplanBoardPrepState', JSON.stringify(values.sentinel));
+    localStorage.setItem('ksBoardsDriveSettingsV1', JSON.stringify({ autoBackup: true, lastLocalChangeAt: values.localChangedAt }));
+  }, { sentinel, localChangedAt });
+
   await page.goto(`${baseUrl}/boards.html`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  await page.waitForSelector('#deviceSyncCard', { timeout: 10000 });
+  await page.waitForSelector('#deviceSyncLocalTime', { timeout: 10000 });
   await page.waitForSelector('#driveBackupSection', { timeout: 10000 });
   await new Promise((resolve) => setTimeout(resolve, 700));
 
   report.initial = await page.evaluate(() => ({
+    comparisonCopies: document.querySelectorAll('#deviceSyncCard .device-sync-copy').length,
     steps: document.querySelectorAll('#deviceSyncCard .device-sync-step').length,
     status: document.getElementById('deviceSyncStatus')?.textContent || '',
+    localTime: document.getElementById('deviceSyncLocalTime')?.textContent || '',
+    localSummary: document.getElementById('deviceSyncLocalSummary')?.textContent || '',
+    driveTime: document.getElementById('deviceSyncDriveTime')?.textContent || '',
     connectEnabled: !document.getElementById('deviceSyncConnect')?.disabled,
-    backupDisabled: !!document.getElementById('deviceSyncBackup')?.disabled,
-    restoreDisabled: !!document.getElementById('deviceSyncRestore')?.disabled,
-    message: document.getElementById('deviceSyncMessage')?.textContent || '',
+    localDisabled: !!document.getElementById('deviceSyncBackup')?.disabled,
+    driveDisabled: !!document.getElementById('deviceSyncRestore')?.disabled,
     overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
     sentinelPreserved: JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.['k-1.1']?.selectedLetter === 'A'
   }));
 
-  if (report.initial.steps !== 3) report.failures.push(`Expected 3 device-sync steps, found ${report.initial.steps}.`);
+  if (report.initial.comparisonCopies !== 2) report.failures.push(`Expected 2 sync comparison copies, found ${report.initial.comparisonCopies}.`);
+  if (report.initial.steps !== 3) report.failures.push(`Expected 3 device-switch steps, found ${report.initial.steps}.`);
   if (!report.initial.status.includes('Not connected')) report.failures.push(`Initial sync status was unclear: ${report.initial.status}`);
-  if (!report.initial.connectEnabled || !report.initial.backupDisabled || !report.initial.restoreDisabled) report.failures.push('Initial sync button states are unsafe or incorrect.');
-  if (!report.initial.message.includes('Not connected')) report.failures.push('The top sync message did not mirror the detailed Drive status.');
-  if (report.initial.overflow) report.failures.push('Device Sync card caused horizontal overflow.');
+  if (!report.initial.localTime.includes('2026') || !report.initial.localSummary.includes('1 questions')) report.failures.push('Local timestamp or summary did not render from real browser state.');
+  if (!report.initial.driveTime.includes('Connect')) report.failures.push('Disconnected Drive timestamp guidance is unclear.');
+  if (!report.initial.connectEnabled || !report.initial.localDisabled || !report.initial.driveDisabled) report.failures.push('Initial sync button states are unsafe or incorrect.');
+  if (report.initial.overflow) report.failures.push('Timestamp comparison caused horizontal overflow.');
   if (!report.initial.sentinelPreserved) report.failures.push('Device Sync initialization altered browser study data.');
 
-  await page.evaluate(() => {
-    const connect = document.getElementById('connectGoogleDrive');
-    const backup = document.getElementById('driveBackupNow');
-    const restore = document.getElementById('driveRestoreLatest');
-    const status = document.getElementById('driveBackupStatus');
-    const last = document.getElementById('driveLastSync');
-    connect.textContent = 'Google Drive connected';
-    connect.disabled = true;
-    backup.disabled = false;
-    restore.disabled = false;
-    status.className = 'drive-backup-status good';
-    status.textContent = 'Connected. This browser matches the latest Drive backup.';
-    last.textContent = 'Last successful sync: Jul 19, 2026, 12:00 AM';
-  });
-  await new Promise((resolve) => setTimeout(resolve, 150));
-
-  report.mirrored = await page.evaluate(() => ({
+  const localNewer = {
+    connected: true,
+    syncing: false,
+    relation: 'local-newer',
+    lastSyncedAt: Date.UTC(2026, 6, 19, 5, 0, 0),
+    local: { updatedAt: Date.UTC(2026, 6, 19, 7, 0, 0), summary: { questions: 12, tests: 3, recoveryBackups: 2 } },
+    drive: { updatedAt: Date.UTC(2026, 6, 19, 6, 0, 0), summary: { questions: 10, tests: 2, recoveryBackups: 1 } }
+  };
+  await page.evaluate((state) => window.dispatchEvent(new CustomEvent('ksboards:drive-sync-state', { detail: state })), localNewer);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  report.localNewer = await page.evaluate(() => ({
     status: document.getElementById('deviceSyncStatus')?.textContent || '',
-    statusClass: document.getElementById('deviceSyncStatus')?.className || '',
-    connectText: document.getElementById('deviceSyncConnect')?.textContent || '',
-    backupEnabled: !document.getElementById('deviceSyncBackup')?.disabled,
-    restoreEnabled: !document.getElementById('deviceSyncRestore')?.disabled,
-    message: document.getElementById('deviceSyncMessage')?.textContent || '',
-    lastSync: document.getElementById('deviceSyncLastSync')?.textContent || ''
+    recommendation: document.getElementById('deviceSyncRecommendation')?.textContent || '',
+    localTime: document.getElementById('deviceSyncLocalTime')?.textContent || '',
+    driveTime: document.getElementById('deviceSyncDriveTime')?.textContent || '',
+    localSummary: document.getElementById('deviceSyncLocalSummary')?.textContent || '',
+    driveSummary: document.getElementById('deviceSyncDriveSummary')?.textContent || '',
+    localEnabled: !document.getElementById('deviceSyncBackup')?.disabled,
+    driveEnabled: !document.getElementById('deviceSyncRestore')?.disabled
   }));
+  if (!report.localNewer.status.includes('device appears newer') || !report.localNewer.recommendation.toLowerCase().includes('use this device')) report.failures.push('Local-newer recommendation is not clear.');
+  if (!report.localNewer.localTime.includes('2026') || !report.localNewer.driveTime.includes('2026')) report.failures.push('Both comparison timestamps were not displayed.');
+  if (!report.localNewer.localSummary.includes('12 questions') || !report.localNewer.driveSummary.includes('10 questions')) report.failures.push('Both comparison summaries were not displayed.');
+  if (!report.localNewer.localEnabled || !report.localNewer.driveEnabled) report.failures.push('Conflict choices were not both available after comparison.');
 
-  if (!report.mirrored.status.includes('Connected and current') || !report.mirrored.statusClass.includes('good')) report.failures.push('Connected status did not mirror to the main card.');
-  if (!report.mirrored.connectText.includes('connected') || !report.mirrored.backupEnabled || !report.mirrored.restoreEnabled) report.failures.push('Connected button states did not mirror to the main card.');
-  if (!report.mirrored.message.includes('matches the latest Drive backup')) report.failures.push('Detailed connected message did not mirror to the main card.');
-  if (!report.mirrored.lastSync.includes('Jul 19, 2026')) report.failures.push('Last successful sync did not mirror to the main card.');
+  const driveNewer = Object.assign({}, localNewer, {
+    relation: 'drive-newer',
+    local: { updatedAt: Date.UTC(2026, 6, 19, 6, 0, 0), summary: localNewer.local.summary },
+    drive: { updatedAt: Date.UTC(2026, 6, 19, 8, 0, 0), summary: localNewer.drive.summary }
+  });
+  await page.evaluate((state) => window.dispatchEvent(new CustomEvent('ksboards:drive-sync-state', { detail: state })), driveNewer);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  report.driveNewer = await page.evaluate(() => ({
+    status: document.getElementById('deviceSyncStatus')?.textContent || '',
+    recommendation: document.getElementById('deviceSyncRecommendation')?.textContent || ''
+  }));
+  if (!report.driveNewer.status.includes('Drive appears newer') || !report.driveNewer.recommendation.toLowerCase().includes('latest copy from drive')) report.failures.push('Drive-newer recommendation is not clear.');
+
+  const inSync = Object.assign({}, localNewer, { relation: 'in-sync' });
+  await page.evaluate((state) => window.dispatchEvent(new CustomEvent('ksboards:drive-sync-state', { detail: state })), inSync);
+  await new Promise((resolve) => setTimeout(resolve, 100));
+  report.inSync = await page.evaluate(() => ({
+    status: document.getElementById('deviceSyncStatus')?.textContent || '',
+    localDisabled: !!document.getElementById('deviceSyncBackup')?.disabled,
+    driveDisabled: !!document.getElementById('deviceSyncRestore')?.disabled
+  }));
+  if (!report.inSync.status.includes('In sync') || !report.inSync.localDisabled || !report.inSync.driveDisabled) report.failures.push('In-sync state did not remove unnecessary overwrite choices.');
 
   await page.$eval('#deviceSyncDetails', (button) => button.click());
   await new Promise((resolve) => setTimeout(resolve, 700));
@@ -131,7 +158,7 @@ try {
   if (!report.detailsVisible) report.failures.push('More sync details did not bring the detailed Drive controls into view.');
 
   report.finalSentinelPreserved = await page.evaluate(() => JSON.parse(localStorage.getItem('kaplanBoardPrepState') || '{}').answered?.['k-1.1']?.selectedLetter === 'A');
-  if (!report.finalSentinelPreserved) report.failures.push('Device Sync interactions altered browser study data.');
+  if (!report.finalSentinelPreserved) report.failures.push('Device Sync comparisons altered browser study data.');
   if (report.errors.length) report.failures.push(`Browser errors detected: ${report.errors.join(' | ')}`);
 
   await page.screenshot({ path: path.join(root, 'device-sync-smoke.png'), fullPage: false });
@@ -149,4 +176,4 @@ if (!report.passed) {
   console.error(`Device Sync browser smoke test failed:\n- ${report.failures.join('\n- ')}`);
   process.exit(1);
 }
-console.log('Device Sync browser smoke test passed.');
+console.log('Timestamp-aware Device Sync browser smoke test passed.');
