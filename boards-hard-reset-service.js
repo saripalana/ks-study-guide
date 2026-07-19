@@ -125,14 +125,15 @@
     return createJson(name, parent, payload, role, appData);
   }
 
-  async function archiveHiddenBackup(rescue) {
+  async function archiveHiddenBackup(rescue, resetId) {
     const historyFile = await findNamed(Config.drive.historyFile, null, 'appDataFolder', 'application/json');
     const existing = historyFile ? await readJson(historyFile) : null;
     if (existing) assertBank(existing, 'Hidden Drive history');
     const snapshots = existing && Array.isArray(existing.snapshots) ? existing.snapshots.slice() : [];
     if (!snapshots.length || snapshots[0].hash !== rescue.hash) {
       snapshots.unshift(bankIdentity({
-        id: 'absolute-reset-' + Config.bank.id + '-' + Date.now(),
+        id: resetId,
+        resetId: resetId,
         createdAt: Date.now(),
         reason: 'Before active-bank absolute reset',
         hash: rescue.hash,
@@ -143,6 +144,7 @@
       schemaVersion: Config.schemaVersion,
       projectId: Config.projectId,
       updatedAt: Date.now(),
+      lastResetId: resetId,
       snapshots: snapshots.slice(0, Config.drive.maxHistory)
     });
     while (history.snapshots.length > 1 && JSON.stringify(history).length > Config.drive.maxHistoryBytes) history.snapshots.pop();
@@ -177,7 +179,7 @@
       const payload = file ? await readJson(file) : null;
       if (payload) {
         assertBank(payload, item.name);
-        await createJson(item.prefix + Config.bank.id + '-' + timestampName() + '.json', folders.history.id, payload, 'pre-reset-history', false);
+        await createJson(item.prefix + Config.bank.id + '-' + timestampName() + '.json', folders.history.id, Object.assign({}, payload, { resetId: resetId }), 'pre-reset-history', false);
       }
     }
     await createJson('absolute-reset-' + Config.bank.id + '-' + timestampName() + '.json', folders.changes.id, {
@@ -223,6 +225,7 @@
       updatedAt: Date.now(),
       activeStudyGenerationId: resetId,
       lastAbsoluteResetAt: Date.now(),
+      lastResetId: resetId,
       performanceHash: performance.performanceHash,
       correlatedHash: correlated.exportHash,
       historicalTestCount: 0,
@@ -231,18 +234,19 @@
     await upsertJson(Vault.files.manifest, folders.production.id, manifest, 'manifest', false);
 
     const emptyCurrent = Store.captureSnapshot('Active-bank absolute reset completed', true, 'current');
+    emptyCurrent.resetId = resetId;
     await upsertJson(Config.drive.currentFile, null, emptyCurrent, 'current', true);
   }
 
   async function execute(rescue, onProgress) {
     const progress = typeof onProgress === 'function' ? onProgress : function () {};
+    const resetId = 'reset-' + Config.bank.id + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
     progress('Authorizing the two limited Drive areas…');
     await authorize();
     progress('Archiving ' + Config.bank.title + ' hidden and visible cloud state…');
-    await archiveHiddenBackup(rescue);
+    await archiveHiddenBackup(rescue, resetId);
     const folders = await locateVisibleVault();
-    await archiveVisibleStudyData(folders, 'reset-' + Config.bank.id + '-' + Date.now());
-    const resetId = 'reset-' + Config.bank.id + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    await archiveVisibleStudyData(folders, resetId);
     progress('Clearing only ' + Config.bank.title + ' browser study data…');
     clearActiveLocalData();
     progress('Publishing the clean ' + Config.bank.title + ' cloud state…');
