@@ -30,6 +30,8 @@ jobs:
         run: node scripts/validate-question-banks.mjs
       - name: Validate visible Question Vault bank routing
         run: node scripts/vault-bank-scope-smoke.mjs
+      - name: Validate active-bank reset transaction identity
+        run: node scripts/validate-reset-transaction.mjs
       - name: Install browser smoke-test harness
         run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
       - name: Run desktop and mobile browser smoke tests
