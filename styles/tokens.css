@@ -1,0 +1,49 @@
+:root {
+  --color-navy:#12365f;
+  --color-navy-dark:#0b2748;
+  --color-blue:#2768a5;
+  --color-blue-light:#e9f2fb;
+  --color-green:#1f8a4c;
+  --color-green-light:#e7f6ed;
+  --color-red:#c13d3d;
+  --color-red-light:#fceaea;
+  --color-gold:#d99a20;
+  --color-purple:#6d55a4;
+  --color-surface:#ffffff;
+  --color-page:#eef2f6;
+  --color-border:#d5dde6;
+  --color-text:#1f2937;
+  --color-muted:#667789;
+
+  /* Backward-compatible aliases used by the existing interface. */
+  --navy:var(--color-navy);
+  --navy-dark:var(--color-navy-dark);
+  --blue:var(--color-blue);
+  --blue-light:var(--color-blue-light);
+  --green:var(--color-green);
+  --green-light:var(--color-green-light);
+  --red:var(--color-red);
+  --red-light:var(--color-red-light);
+  --gold:var(--color-gold);
+  --purple:var(--color-purple);
+  --surface:var(--color-surface);
+  --page:var(--color-page);
+  --border:var(--color-border);
+  --text:var(--color-text);
+  --muted:var(--color-muted);
+
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-7:32px;
+
+  --radius-sm:5px;
+  --radius-md:8px;
+  --radius-lg:12px;
+  --shadow-card:0 2px 8px rgba(26,46,68,.07);
+  --shadow-dialog:0 24px 70px rgba(0,0,0,.28);
+  --focus-ring:0 0 0 3px rgba(39,104,165,.24);
+}
