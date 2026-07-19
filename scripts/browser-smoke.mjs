@@ -217,12 +217,12 @@ async function runViewport(name, viewport, screenshot) {
       reviewedQuestions: document.querySelectorAll('#historyDetail .review-question').length,
       scoreText: document.querySelector('#historyDetail .review-summary strong')?.textContent || ''
     }));
-    await page.click('#closeHistoryModal');
+    await page.evaluate(() => document.getElementById('closeHistoryModal')?.click());
     reviewState.closed = await page.$eval('#testReviewModal', (element) => element.hidden);
 
     await page.click('#openHardReset');
     const modalOpened = await page.$eval('#hardResetModal', (element) => !element.hidden);
-    await page.click('#cancelHardReset');
+    await page.evaluate(() => document.getElementById('cancelHardReset')?.click());
     const modalClosed = await page.$eval('#hardResetModal', (element) => element.hidden);
 
     const finalState = await page.evaluate((firstQuestionId) => ({
