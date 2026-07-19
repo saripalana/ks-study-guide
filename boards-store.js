@@ -24,7 +24,7 @@
   }
 
   function emit(detail) {
-    const payload = Object.assign({ timestamp: Date.now() }, detail || {});
+    const payload = Object.assign({ timestamp: Date.now(), bankId: Config.bank.id }, detail || {});
     subscribers.forEach(function (handler) {
       try { handler(payload); } catch (error) { console.error(error); }
     });
@@ -55,7 +55,7 @@
 
   function milestone(reason, metadata) {
     window.dispatchEvent(new CustomEvent(Config.events.milestone, {
-      detail: { reason: reason || 'Study milestone', metadata: metadata || {}, timestamp: Date.now() }
+      detail: { reason: reason || 'Study milestone', metadata: Object.assign({ bankId: Config.bank.id }, metadata || {}), timestamp: Date.now(), bankId: Config.bank.id }
     }));
   }
 
@@ -96,6 +96,10 @@
       schemaVersion: Config.schemaVersion,
       projectId: Config.projectId,
       app: 'ks-study-guide',
+      bankId: Config.bank.id,
+      bankTitle: Config.bank.title,
+      bankQuestionHash: Config.bank.questionHash,
+      storageNamespace: Config.bank.storageNamespace,
       kind: kind || (includeLocalRecovery ? 'current' : 'history'),
       createdAt: Date.now(),
       reason: reason || 'Backup',
@@ -131,19 +135,30 @@
       throw new Error('Backup does not contain stored study data.');
     }
 
+    const projectId = snapshot.projectId || Config.projectId;
+    if (projectId !== Config.projectId) throw new Error('Backup belongs to a different project.');
+
+    const explicitBankId = String(snapshot.bankId || (snapshot.bank && snapshot.bank.id) || '').trim().toLowerCase();
+    const snapshotBankId = explicitBankId || (Config.bank.legacyStorage ? Config.bank.id : '');
+    if (!snapshotBankId) throw new Error('Backup has no question-bank identity and cannot be restored safely.');
+    if (snapshotBankId !== Config.bank.id) {
+      throw new Error('Backup belongs to ' + (snapshot.bankTitle || snapshotBankId) + ', not the active ' + Config.bank.title + '. Switch banks before restoring it.');
+    }
+
     const safeData = {};
     Object.keys(data).forEach(function (key) {
       if (Config.storage.backupKeys.indexOf(key) >= 0) safeData[key] = data[key];
     });
-    if (!Object.keys(safeData).length) throw new Error('Backup contains no recognized study-data keys.');
-
-    const projectId = snapshot.projectId || Config.projectId;
-    if (projectId !== Config.projectId) throw new Error('Backup belongs to a different project.');
+    if (!Object.keys(safeData).length) throw new Error('Backup contains no recognized study-data keys for ' + Config.bank.title + '.');
 
     return {
       schemaVersion: Number(snapshot.schemaVersion) || 1,
       projectId: Config.projectId,
       app: snapshot.app || 'ks-study-guide',
+      bankId: Config.bank.id,
+      bankTitle: snapshot.bankTitle || Config.bank.title,
+      bankQuestionHash: snapshot.bankQuestionHash || '',
+      storageNamespace: Config.bank.storageNamespace,
       kind: snapshot.kind || 'history',
       createdAt: Number(snapshot.createdAt) || Date.now(),
       reason: snapshot.reason || 'Imported backup',
@@ -182,7 +197,7 @@
   }
 
   window.addEventListener('storage', function (event) {
-    if (!event.key || (!knownKeys.has(event.key) && event.key.indexOf('ksBoards') !== 0)) return;
+    if (!event.key || (!knownKeys.has(event.key) && event.key.indexOf(Config.bank.storageNamespace || 'ksBoards') !== 0)) return;
     emit({ action: event.newValue === null ? 'remove' : 'external-write', key: event.key, source: 'storage-event' });
   });
 
