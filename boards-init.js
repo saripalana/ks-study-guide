@@ -3,11 +3,16 @@
 
   const required = [
     ['BoardsConfig', window.BoardsConfig],
+    ['BoardsQuestionBankRegistry', window.BoardsQuestionBankRegistry],
     ['BoardsStore', window.BoardsStore],
     ['BoardsCore', window.BoardsCore],
     ['BoardsExam', window.BoardsExam],
     ['BoardsDashboard', window.BoardsDashboard],
-    ['BoardsDashboardViews', window.BoardsDashboardViews]
+    ['BoardsDashboardViews', window.BoardsDashboardViews],
+    ['BoardsBankConsistency', window.BoardsBankConsistency],
+    ['BoardsVaultBankScope', window.BoardsVaultBankScope],
+    ['BoardsHardResetService', window.BoardsHardResetService],
+    ['BoardsHardReset', window.BoardsHardReset]
   ];
   const missing = required.filter(function (item) { return !item[1]; }).map(function (item) { return item[0]; });
 
@@ -25,12 +30,30 @@
     if (!question || !question.id || ids.has(question.id)) duplicates.push(question && question.id);
     else ids.add(question.id);
   });
-  if (duplicates.length) console.error('Duplicate or invalid question IDs detected.', duplicates);
+  if (duplicates.length) {
+    document.body.innerHTML = window.BoardsDashboardViews.startupFailure(['unique question IDs']);
+    console.error('Duplicate or invalid question IDs detected.', duplicates);
+    return;
+  }
+
+  const consistency = window.BoardsBankConsistency.validateCurrentState();
+  if (!consistency.valid) {
+    document.body.innerHTML = window.BoardsDashboardViews.startupFailure(['question-bank data consistency']);
+    console.error('Question-bank consistency validation failed.', consistency);
+    return;
+  }
 
   window.BoardsExam.init();
   window.BoardsDashboard.init();
   window.BoardsDashboard.render();
   window.dispatchEvent(new CustomEvent(window.BoardsConfig.events.ready, {
-    detail: { build: window.BoardsConfig.build, questionCount: window.BoardsCore.fullBank.length }
+    detail: {
+      build: window.BoardsConfig.build,
+      bankId: window.BoardsConfig.bank.id,
+      bankTitle: window.BoardsConfig.bank.title,
+      bankQuestionHash: window.BoardsConfig.bank.questionHash,
+      questionCount: window.BoardsCore.fullBank.length,
+      completedTests: consistency.completedTests
+    }
   }));
 })();

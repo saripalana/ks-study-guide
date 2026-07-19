@@ -15,6 +15,16 @@
     return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   }
 
+  function bankProperties(role) {
+    return {
+      projectId: Config.projectId,
+      bankId: Config.bank.id,
+      bankTitle: String(Config.bank.title || '').slice(0, 120),
+      vaultRole: role || '',
+      schemaVersion: String(Config.questionVault.schemaVersion)
+    };
+  }
+
   function create(options) {
     const settings = Object.assign({
       clientId: Config.drive.clientId,
@@ -140,12 +150,17 @@
 
     async function ensureFolder(name, parentId, role) {
       let folder = await findFile(name, parentId, FOLDER_MIME);
-      if (folder) return folder;
+      if (folder) {
+        const properties = folder.appProperties || {};
+        if (properties.projectId && properties.projectId !== Config.projectId) throw new Error('Drive folder ' + name + ' belongs to another project.');
+        if (properties.bankId && properties.bankId !== Config.bank.id && role !== 'root' && role !== 'banks-root') throw new Error('Drive folder ' + name + ' belongs to another question bank.');
+        return folder;
+      }
       folder = await createMetadata({
         name: name,
         mimeType: FOLDER_MIME,
         parents: parentId ? [parentId] : undefined,
-        appProperties: { projectId: Config.projectId, vaultRole: role }
+        appProperties: bankProperties(role)
       });
       return folder;
     }
@@ -162,7 +177,7 @@
         name: name,
         mimeType: JSON_MIME,
         parents: [parentId],
-        appProperties: { projectId: Config.projectId, vaultRole: role, schemaVersion: String(Config.questionVault.schemaVersion) }
+        appProperties: bankProperties(role)
       };
       const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
         JSON.stringify(metadata) + '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' +
@@ -176,6 +191,8 @@
     }
 
     async function updateJson(file, payload) {
+      const properties = file && file.appProperties || {};
+      if (properties.bankId && properties.bankId !== Config.bank.id) throw new Error('Refusing to update a visible Drive file belonging to another question bank.');
       const response = await request('https://www.googleapis.com/upload/drive/v3/files/' + encodeURIComponent(file.id) + '?uploadType=media&fields=id,name,mimeType,modifiedTime,size,webViewLink,parents,appProperties', {
         method: 'PATCH',
         headers: { 'Content-Type': JSON_MIME },
@@ -188,6 +205,8 @@
       const key = folder.id + '|' + name;
       const file = knownFiles[key] || await findFile(name, folder.id, JSON_MIME);
       if (!file) return { file: null, payload: null };
+      const properties = file.appProperties || {};
+      if (properties.bankId && properties.bankId !== Config.bank.id) throw new Error('Visible Drive file ' + name + ' belongs to another question bank.');
       knownFiles[key] = file;
       return { file: file, payload: await readJson(file) };
     }

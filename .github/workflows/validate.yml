@@ -18,10 +18,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Run static validation
+      - name: Run full platform static validation
         run: |
           set +e
-          node scripts/validate.mjs 2>&1 | tee validation-report.txt
+          node scripts/validate-full-platform.mjs 2>&1 | tee validation-report.txt
           status=${PIPESTATUS[0]}
           exit $status
       - name: Validate automatic Device Sync safeguards
@@ -38,6 +38,8 @@ jobs:
         run: node scripts/exam-smoke.mjs
       - name: Run expandable question-bank and second-bank exam test
         run: node scripts/question-bank-selector-smoke.mjs
+      - name: Run complete K&S and future-bank consistency matrix
+        run: node scripts/full-platform-consistency-smoke.mjs
       - name: Upload browser smoke results
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -78,6 +80,17 @@ jobs:
             question-bank-selector-report.json
             question-bank-selector-ks.png
             question-bank-selector-future.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload full platform consistency results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-platform-consistency-results
+          path: |
+            full-platform-consistency-report.json
+            full-platform-ks.png
+            full-platform-future.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload validation report on failure
