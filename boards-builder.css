@@ -4,6 +4,32 @@
 .builder-mini-actions { display:flex; gap:5px; flex-wrap:wrap; }
 .builder-link-button { padding:4px 7px; border:0; color:#2768a5; background:transparent; font-size:11px; font-weight:800; }
 .builder-link-button:hover { text-decoration:underline; }
+.question-bank-builder-section { padding-top:0; border-top:0; }
+.question-bank-selector { margin-top:8px; border:1px solid #b9ccdc; border-radius:9px; background:#f8fbfe; overflow:hidden; }
+.question-bank-selector > summary { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:14px; align-items:center; padding:13px 15px; cursor:pointer; list-style:none; }
+.question-bank-selector > summary::-webkit-details-marker { display:none; }
+.question-bank-selector > summary::after { content:'⌄'; grid-column:3; color:#2768a5; font-size:18px; font-weight:900; transition:transform .15s ease; }
+.question-bank-selector[open] > summary::after { transform:rotate(180deg); }
+.question-bank-summary-copy { min-width:0; }
+.question-bank-summary-copy strong,.question-bank-summary-copy span,.question-bank-summary-meta strong,.question-bank-summary-meta span { display:block; }
+.question-bank-summary-copy strong { color:#173b62; font-size:13.5px; }
+.question-bank-summary-copy span { margin-top:3px; color:#667789; font-size:10.5px; line-height:1.35; }
+.question-bank-summary-meta { min-width:64px; text-align:right; }
+.question-bank-summary-meta strong { color:#173b62; font-size:17px; font-variant-numeric:tabular-nums; }
+.question-bank-summary-meta span { color:#6b7c8d; font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; }
+.question-bank-options { display:grid; gap:7px; padding:10px; border-top:1px solid #d7e3ed; background:#eef5fb; }
+.question-bank-option { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; width:100%; padding:11px 12px; border:1px solid #c7d5e1; border-radius:7px; color:#344455; background:#fff; text-align:left; }
+.question-bank-option:hover:not(:disabled) { border-color:#6f9cc5; background:#f7fbff; }
+.question-bank-option.selected { border-color:#2768a5; background:#eaf3fb; }
+.question-bank-option:disabled { cursor:not-allowed; opacity:.58; }
+.question-bank-option-main { min-width:0; }
+.question-bank-option-main strong,.question-bank-option-main span,.question-bank-option-meta strong,.question-bank-option-meta span,.question-bank-option-meta em { display:block; }
+.question-bank-option-main strong { color:#173b62; font-size:12px; }
+.question-bank-option-main span { margin-top:4px; color:#667789; font-size:10.5px; line-height:1.35; }
+.question-bank-option-meta { min-width:72px; text-align:right; }
+.question-bank-option-meta strong { color:#173b62; font-size:15px; }
+.question-bank-option-meta span { color:#6b7c8d; font-size:9px; text-transform:uppercase; }
+.question-bank-option-meta em { margin-top:4px; color:#2768a5; font-size:9.5px; font-style:normal; font-weight:800; }
 .subject-selection-grid { display:grid; grid-template-columns:1fr; gap:6px; max-height:300px; overflow-y:auto; margin-top:10px; padding:3px; border:1px solid #d5dde6; border-radius:7px; background:#f7f9fb; }
 .subject-option { position:relative; display:grid; grid-template-columns:20px minmax(0,1fr) 38px; align-items:center; gap:9px; min-height:52px; padding:8px 10px; border:1px solid transparent; border-radius:6px; background:#fff; cursor:pointer; }
 .subject-option:hover { border-color:#9eb5ca; }
@@ -27,4 +53,4 @@
 .builder-warning { margin-top:9px; padding:9px 10px; border:1px solid #e2a4a4; border-radius:6px; color:#922f2f; background:#fceded; font-size:11px; font-weight:700; }
 #startNewSetBtn:disabled { opacity:.48; cursor:not-allowed; }
 @media(min-width:1200px){ .subject-selection-grid{grid-template-columns:1fr 1fr} }
-@media(max-width:620px){ .pool-grid{grid-template-columns:1fr}.subject-selection-grid{max-height:360px} }
+@media(max-width:620px){ .pool-grid{grid-template-columns:1fr}.subject-selection-grid{max-height:360px}.question-bank-selector>summary{grid-template-columns:minmax(0,1fr) auto}.question-bank-selector>summary::after{grid-column:auto}.question-bank-option{grid-template-columns:minmax(0,1fr)}.question-bank-option-meta{text-align:left} }
