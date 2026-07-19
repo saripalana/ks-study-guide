@@ -24,7 +24,9 @@ jobs:
           node scripts/validate-full-platform.mjs 2>&1 | tee validation-report.txt
           status=${PIPESTATUS[0]}
           exit $status
-      - name: Validate automatic Device Sync safeguards
+      - name: Validate ABPN site and question-bank identity separation
+        run: node scripts/validate-site-identity.mjs
+      - name: Validate one-button Device Sync safeguards
         run: node scripts/validate-device-sync.mjs
       - name: Validate question-bank isolation and runtime safeguards
         run: node scripts/validate-question-banks.mjs

@@ -25,37 +25,49 @@ for (const capability of [
 ]) requireText(service, capability, 'Automatic Drive sync service capability');
 
 for (const safeguard of [
-  "appendCloudHistory(remoteCurrent.snapshot",
-  "historySnapshot(config.localHistoryReason",
+  'appendCloudHistory(remoteCurrent.snapshot',
+  'historySnapshot(config.localHistoryReason',
   "window.BoardsMaintenance.backupNow('Before restoring from Google Drive'",
-  "preserveKeys: [Keys.localBackups, Keys.driveSettings]"
+  'preserveKeys: [Keys.localBackups, Keys.driveSettings]'
 ]) requireText(service, safeguard, 'Recovery-history safeguard');
 
 for (const capability of [
   'runAutomaticSync',
   "result.action === 'needs-choice'",
   'openChoiceDialog',
-  'Automatic sync encountered an error:',
+  'Sync encountered an error:',
   "chooseSource('local')",
   "chooseSource('drive')"
-]) requireText(controller, capability, 'Automatic Device Sync controller capability');
+]) requireText(controller, capability, 'Single-action Device Sync controller capability');
 
 for (const elementId of [
   'deviceSyncNow',
-  'deviceSyncChoose',
   'deviceSyncChoiceDialog',
   'deviceSyncChooseLocal',
   'deviceSyncChooseDrive',
   'deviceSyncChoiceReason'
-]) requireText(view, elementId, 'Automatic Device Sync view element');
+]) requireText(view, elementId, 'Device Sync view element');
 
-for (const selector of ['.device-sync-dialog', '.device-sync-dialog-comparison', '.device-sync-choice-copy']) {
-  requireText(style, selector, 'Automatic Device Sync dialog style');
+for (const forbidden of ['deviceSyncChoose"', 'deviceSyncDetails"', 'device-sync-comparison', 'device-sync-steps']) {
+  if (view.includes(forbidden)) failures.push(`Visible Device Sync must not expose extra controls or process clutter: ${forbidden}`);
 }
 
+const buttonMatches = [...view.matchAll(/<button\b/g)];
+const dialogIndex = view.indexOf('<dialog');
+const visibleBeforeDialog = dialogIndex >= 0 ? view.slice(0, dialogIndex) : view;
+const visibleButtons = [...visibleBeforeDialog.matchAll(/<button\b/g)].length;
+if (visibleButtons !== 1) failures.push(`Device Sync card must expose exactly one visible action button; found ${visibleButtons}.`);
+if (!style.includes('#driveBackupSection { display: none !important; }')) failures.push('Legacy detailed Drive controls must be hidden from the normal dashboard.');
+
+for (const selector of ['.device-sync-dialog', '.device-sync-dialog-comparison', '.device-sync-choice-copy', '.device-sync-single-action']) {
+  requireText(style, selector, 'Device Sync style');
+}
+
+if (buttonMatches.length < 4) failures.push('Fallback dialog controls are incomplete.');
+
 if (failures.length) {
-  console.error(`Automatic Device Sync validation failed:\n- ${failures.join('\n- ')}`);
+  console.error(`Device Sync validation failed:\n- ${failures.join('\n- ')}`);
   process.exit(1);
 }
 
-console.log('Automatic Device Sync decision rules, fallback dialog, and recovery safeguards are present.');
+console.log('One-button Device Sync, automatic direction rules, fallback dialog, and recovery safeguards are present.');
