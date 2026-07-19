@@ -2,11 +2,19 @@
   'use strict';
 
   const DEFAULT_EVENT = 'ksboards:drive-sync-state';
-  let stateEvent = DEFAULT_EVENT;
   let fallbackTimer = null;
 
   function element(id) {
     return document.getElementById(id);
+  }
+
+  function ensureStylesheet() {
+    const href = './styles/device-sync.css?v=2';
+    if (document.querySelector('link[href="' + href + '"]')) return;
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
   }
 
   function formatDate(value) {
@@ -38,55 +46,48 @@
     const relation = state && state.relation;
     if (!state || !state.connected) {
       return {
-        status: 'Not connected',
-        tone: 'neutral',
+        status: 'Not connected', tone: 'neutral',
         title: 'Connect Google Drive to compare copies',
         message: 'Nothing will be overwritten when you connect. The app first compares this browser with the latest Drive backup.'
       };
     }
     if (state.syncing || relation === 'checking') {
       return {
-        status: 'Checking Drive',
-        tone: 'neutral',
+        status: 'Checking Drive', tone: 'neutral',
         title: 'Comparing this device with Google Drive…',
         message: 'Wait for the comparison to finish before choosing a copy.'
       };
     }
     if (relation === 'in-sync') {
       return {
-        status: 'In sync',
-        tone: 'good',
+        status: 'In sync', tone: 'good',
         title: 'This device and Google Drive match',
         message: 'No decision is needed. Continue studying here; automatic backup will keep Drive current while connected.'
       };
     }
     if (relation === 'local-newer') {
       return {
-        status: 'This device appears newer',
-        tone: 'warning',
+        status: 'This device appears newer', tone: 'warning',
         title: 'Recommended: use this device as the latest copy',
         message: 'This device changed after the Drive backup. Choosing it preserves the prior Drive copy in cloud history before updating Drive.'
       };
     }
     if (relation === 'drive-newer') {
       return {
-        status: 'Drive appears newer',
-        tone: 'warning',
+        status: 'Drive appears newer', tone: 'warning',
         title: 'Recommended: get the latest copy from Drive',
         message: 'The Drive backup was created after the last recorded change on this device. The current browser is preserved before restoring.'
       };
     }
     if (relation === 'no-drive-backup') {
       return {
-        status: 'Drive has no backup',
-        tone: 'warning',
+        status: 'Drive has no backup', tone: 'warning',
         title: 'Use this device as the first Drive copy',
         message: 'Google Drive does not yet contain a current backup. Backing up this device creates one without deleting local progress.'
       };
     }
     return {
-      status: 'Choose which copy is latest',
-      tone: 'warning',
+      status: 'Choose which copy is latest', tone: 'warning',
       title: 'The copies differ and need your choice',
       message: 'Review both timestamps and summaries. Choose the copy you know contains your newest work; the other copy is archived before replacement.'
     };
@@ -126,7 +127,7 @@
     }
     if (timezone) timezone.textContent = 'Times shown in ' + Intl.DateTimeFormat().resolvedOptions().timeZone + '.';
     if (recommendation) recommendation.textContent = decision.title;
-    message.innerHTML = '<strong>' + decision.title + '</strong><span>' + decision.message + '</span>';
+    message.innerHTML = '<strong id="deviceSyncRecommendation">' + decision.title + '</strong><span>' + decision.message + '</span>';
 
     const inSync = safeState.relation === 'in-sync';
     connect.disabled = !!safeState.connected || !!safeState.syncing;
@@ -148,7 +149,6 @@
       renderState({ connected: false, syncing: false, relation: 'disconnected', local: null, drive: null });
       return;
     }
-    stateEvent = api.syncStateEvent || DEFAULT_EVENT;
     try {
       renderState(api.getSyncState());
     } catch (error) {
@@ -180,9 +180,18 @@
     if (firstControl) setTimeout(function () { firstControl.focus({ preventScroll: true }); }, 450);
   }
 
-  function init() {
+  async function init() {
     const card = element('deviceSyncCard');
     if (!card) return;
+    ensureStylesheet();
+    try {
+      const view = await import('./ui/device-sync-view.js?v=1');
+      view.mountDeviceSyncView(card);
+    } catch (error) {
+      console.error('Device Sync view could not load.', error);
+      return;
+    }
+
     element('deviceSyncConnect').addEventListener('click', function () { callDrive('connect'); });
     element('deviceSyncBackup').addEventListener('click', function () { callDrive('backupNow'); });
     element('deviceSyncRestore').addEventListener('click', function () { callDrive('restoreLatest'); });
