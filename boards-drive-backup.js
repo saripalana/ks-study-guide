@@ -10,6 +10,7 @@
 
   const Drive = Config.drive;
   const Keys = Config.storage.keys;
+  const SYNC_STATE_EVENT = 'ksboards:drive-sync-state';
 
   let tokenClient = null;
   let accessToken = '';
@@ -37,7 +38,6 @@
     Store.write(Keys.driveSettings, value, { reason: 'Drive backup settings updated' });
     return value;
   }
-
 
   function formatDate(value) {
     if (!value) return 'Never';
@@ -78,11 +78,78 @@
     return { questions: answered.size, tests: Array.isArray(tests) ? tests.length : 0, recoveryBackups: Array.isArray(backups) ? backups.length : 0 };
   }
 
+  function addTimestamp(values, value) {
+    const timestamp = Number(value) || 0;
+    if (timestamp > 0) values.push(timestamp);
+  }
+
+  function inferLocalUpdatedAt(snapshot, currentSettings) {
+    const values = [];
+    const data = snapshot && snapshot.data ? snapshot.data : {};
+    const config = data[Keys.config] || {};
+    const tests = Array.isArray(data[Keys.tests]) ? data[Keys.tests] : [];
+    const backups = Array.isArray(data[Keys.localBackups]) ? data[Keys.localBackups] : [];
+    const history = data[Keys.history] || {};
+    const app = data[Keys.app] || {};
+
+    addTimestamp(values, currentSettings && currentSettings.lastLocalChangeAt);
+    addTimestamp(values, currentSettings && currentSettings.lastRestoredAt);
+    addTimestamp(values, currentSettings && currentSettings.lastSyncedAt);
+    ['createdAt', 'lastOpenedAt', 'completedAt', 'updatedAt'].forEach(function (key) { addTimestamp(values, config[key]); });
+    ['updatedAt', 'lastUpdatedAt'].forEach(function (key) { addTimestamp(values, app[key]); });
+    tests.forEach(function (test) { addTimestamp(values, test && test.createdAt); addTimestamp(values, test && test.completedAt); });
+    backups.forEach(function (backup) { addTimestamp(values, backup && backup.createdAt); });
+    Object.keys(history).forEach(function (key) { addTimestamp(values, history[key] && history[key].timestamp); });
+    return values.length ? Math.max.apply(Math, values) : 0;
+  }
+
+  function driveUpdatedAt() {
+    if (!remoteCurrent) return 0;
+    const snapshotTime = Number(remoteCurrent.snapshot && remoteCurrent.snapshot.createdAt) || 0;
+    const fileTime = Date.parse(remoteCurrent.file && remoteCurrent.file.modifiedTime) || 0;
+    return Math.max(snapshotTime, fileTime);
+  }
+
+  function getSyncState() {
+    const local = currentSnapshot('Sync comparison');
+    const currentSettings = settings();
+    const localTime = inferLocalUpdatedAt(local, currentSettings);
+    const remoteTime = driveUpdatedAt();
+    let relation = 'disconnected';
+
+    if (connected) {
+      if (syncing) relation = 'checking';
+      else if (!remoteCurrent) relation = 'no-drive-backup';
+      else if (remoteCurrent.snapshot.hash === local.hash) relation = 'in-sync';
+      else if (localTime && remoteTime && localTime > remoteTime + 1000) relation = 'local-newer';
+      else if (localTime && remoteTime && remoteTime > localTime + 1000) relation = 'drive-newer';
+      else relation = 'different';
+    }
+
+    return {
+      connected: connected,
+      syncing: syncing,
+      syncReady: syncReady,
+      conflict: conflict,
+      relation: relation,
+      lastSyncedAt: Number(currentSettings.lastSyncedAt) || 0,
+      local: { updatedAt: localTime, hash: local.hash, summary: summary(local) },
+      drive: remoteCurrent ? { updatedAt: remoteTime, hash: remoteCurrent.snapshot.hash, summary: summary(remoteCurrent.snapshot) } : null
+    };
+  }
+
+  function emitSyncState() {
+    try { window.dispatchEvent(new CustomEvent(SYNC_STATE_EVENT, { detail: getSyncState() })); }
+    catch (error) { console.warn('Could not publish Drive sync state.', error); }
+  }
+
   function setStatus(message, tone) {
     const element = document.getElementById('driveBackupStatus');
-    if (!element) return;
-    element.textContent = message;
-    element.className = 'drive-backup-status ' + (tone || 'neutral');
+    if (element) {
+      element.textContent = message;
+      element.className = 'drive-backup-status ' + (tone || 'neutral');
+    }
+    emitSyncState();
   }
 
   function updateUi() {
@@ -110,6 +177,7 @@
       }
     }
     renderCloudHistory();
+    emitSyncState();
   }
 
   function mountUi() {
@@ -353,18 +421,36 @@
   function init() {
     ensureUi();
     initializeTokenClient();
+    const initialSettings = settings();
+    if (!Number(initialSettings.lastLocalChangeAt)) {
+      const inferred = inferLocalUpdatedAt(currentSnapshot('Initial local sync status'), initialSettings);
+      if (inferred) saveSettings({ lastLocalChangeAt: inferred });
+    }
     Store.subscribe(function (change) {
+      if (change.key !== Keys.driveSettings) {
+        const changedAt = Number(change.timestamp) || Date.now();
+        const currentSettings = settings();
+        if (changedAt > Number(currentSettings.lastLocalChangeAt || 0)) {
+          saveSettings({
+            lastLocalChangeAt: changedAt,
+            lastLocalChangeReason: change.reason || change.action || 'Study data changed'
+          });
+        }
+      }
+      emitSyncState();
       if (!connected || !settings().autoBackup || change.key === Keys.driveSettings) return;
       scheduleAutoBackup(change.key === Keys.config && change.reason === 'Question timing updated' ? 10000 : 5000);
     });
     window.addEventListener(Config.events.milestone, function (event) {
       pendingMilestoneReason = event.detail && event.detail.reason ? event.detail.reason : 'Study milestone';
       if (connected && settings().autoBackup) scheduleAutoBackup(500);
+      emitSyncState();
     });
     window.addEventListener('message', function () { if (connected && settings().autoBackup) scheduleAutoBackup(5000); });
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && connected && settings().autoBackup) scheduleAutoBackup(0); });
+    emitSyncState();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
-  window.BoardsDriveBackup = Object.freeze({ connect: connectDrive, backupNow: manualBackup, restoreLatest: restoreLatest, disconnect: disconnectSession, revoke: revokeAccess });
+  window.BoardsDriveBackup = Object.freeze({ connect: connectDrive, backupNow: manualBackup, restoreLatest: restoreLatest, disconnect: disconnectSession, revoke: revokeAccess, getSyncState: getSyncState, syncStateEvent: SYNC_STATE_EVENT });
 })();
