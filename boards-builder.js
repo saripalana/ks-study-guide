@@ -2,7 +2,9 @@
   'use strict';
 
   const C = window.BoardsCore;
-  if (!C || !C.fullBank || !C.fullBank.length) return;
+  const Views = window.BoardsDashboardViews;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!C || !Views || !Registry || !C.fullBank || !C.fullBank.length) return;
 
   const SETTINGS_KEY = C.KEY.settings;
   const allChapters = Array.from(new Map(C.fullBank.map(function (q) {
@@ -15,12 +17,6 @@
 
   let selectedPool = 'all';
   let selectedChapters = new Set(allChapters.map(function (item) { return item.value; }));
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function currentStatus(q) {
     return C.statusForQuestion(q, C.appState(), C.historyState(), C.activeConfig());
@@ -84,16 +80,7 @@
   function renderSubjects() {
     const grid = document.getElementById('subjectSelectionGrid');
     if (!grid) return;
-    grid.innerHTML = allChapters.map(function (item) {
-      const checked = selectedChapters.has(item.value);
-      const available = subjectPoolCount(item.value);
-      return '<label class="subject-option' + (checked ? ' selected' : '') + '">' +
-        '<input type="checkbox" value="' + escapeHtml(item.value) + '"' + (checked ? ' checked' : '') + '>' +
-        '<span class="subject-check" aria-hidden="true"></span>' +
-        '<span class="subject-copy"><strong>Chapter ' + escapeHtml(item.chapter) + '</strong><span>' + escapeHtml(item.title) + '</span></span>' +
-        '<span class="subject-count">' + available + '</span>' +
-        '</label>';
-    }).join('');
+    grid.innerHTML = Views.subjectOptions(allChapters, selectedChapters, subjectPoolCount);
 
     grid.querySelectorAll('input[type="checkbox"]').forEach(function (checkbox) {
       checkbox.addEventListener('change', function () {
@@ -136,52 +123,35 @@
     }
   }
 
-  function injectBuilderUi() {
-    if (document.getElementById('questionPoolOptions')) return;
-    const startButton = document.getElementById('startNewSetBtn');
-    if (!startButton) return;
-    const card = startButton.closest('.dashboard-card');
-    const firstSection = card && card.querySelector('.form-section');
-    if (!card || !firstSection) return;
+  function mountBuilderUi() {
+    const existing = document.getElementById('uworldBuilderOptions');
+    if (existing) return existing;
+    const wrapper = Views.createBuilderOptions();
 
-    const wrapper = document.createElement('div');
-    wrapper.id = 'uworldBuilderOptions';
-    wrapper.innerHTML =
-      '<div class="form-section builder-section">' +
-        '<div class="builder-heading-row"><div><div class="field-label">Subjects</div><div id="subjectSelectionSummary" class="builder-summary"></div></div>' +
-        '<div class="builder-mini-actions"><button type="button" id="selectAllSubjects" class="builder-link-button">Select all</button><button type="button" id="clearAllSubjects" class="builder-link-button">Clear</button></div></div>' +
-        '<div id="subjectSelectionGrid" class="subject-selection-grid"></div>' +
-      '</div>' +
-      '<div class="form-section builder-section">' +
-        '<div class="field-label">Question pool</div>' +
-        '<div id="questionPoolOptions" class="pool-grid">' +
-          '<button type="button" class="pool-card" data-pool="all"><span class="pool-title">All / Random</span><span class="pool-copy">Randomly sample from every eligible question.</span><strong class="pool-count">0</strong></button>' +
-          '<button type="button" class="pool-card" data-pool="new"><span class="pool-title">New</span><span class="pool-copy">Questions you have not answered before.</span><strong class="pool-count">0</strong></button>' +
-          '<button type="button" class="pool-card" data-pool="used"><span class="pool-title">Used</span><span class="pool-copy">Questions previously answered or submitted.</span><strong class="pool-count">0</strong></button>' +
-          '<button type="button" class="pool-card" data-pool="incorrect"><span class="pool-title">Incorrect</span><span class="pool-copy">Questions last answered incorrectly or omitted.</span><strong class="pool-count">0</strong></button>' +
-          '<button type="button" class="pool-card" data-pool="flagged"><span class="pool-title">Flagged</span><span class="pool-copy">Questions currently marked for review.</span><strong class="pool-count">0</strong></button>' +
-        '</div>' +
-        '<div id="builderWarning" class="builder-warning" hidden></div>' +
-      '</div>';
-    card.insertBefore(wrapper, firstSection);
-
-    document.getElementById('selectAllSubjects').addEventListener('click', function () {
+    wrapper.querySelector('#selectAllSubjects').addEventListener('click', function () {
       selectedChapters = new Set(allChapters.map(function (item) { return item.value; }));
       saveBuilderSettings();
       updateBuilder();
     });
-    document.getElementById('clearAllSubjects').addEventListener('click', function () {
+    wrapper.querySelector('#clearAllSubjects').addEventListener('click', function () {
       selectedChapters.clear();
       saveBuilderSettings();
       updateBuilder();
     });
-    document.querySelectorAll('#questionPoolOptions .pool-card').forEach(function (button) {
+    wrapper.querySelectorAll('#questionPoolOptions .pool-card').forEach(function (button) {
       button.addEventListener('click', function () {
         selectedPool = button.getAttribute('data-pool');
         saveBuilderSettings();
         updateBuilder();
       });
     });
+    setTimeout(updateBuilder, 0);
+    return wrapper;
+  }
+
+  function injectBuilderUi() {
+    if (document.getElementById('questionPoolOptions')) return;
+    Registry.register({ id: 'study-set-builder-options', region: 'practice-builder', order: 100, mount: mountBuilderUi });
   }
 
   function replaceStartButton() {
