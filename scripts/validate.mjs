@@ -18,10 +18,11 @@ for (const asset of localAssets) {
 
 const scriptOrder = [
   'boards-config.js', 'data.js', 'questions-global.js', 'boards-store.js', 'boards-core.js',
-  'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js', 'boards-analytics.js',
-  'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js', 'boards-safety.js',
-  'boards-question-bank-model.js', 'boards-visible-drive-client.js', 'boards-drive-backup.js',
-  'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
+  'ui/dashboard-registry.js', 'ui/panel-templates.js', 'ui/dashboard-views.js',
+  'boards-dashboard.js', 'boards-exam-countdown.js', 'boards-exam-v2.js',
+  'boards-analytics.js', 'boards-builder.js', 'boards-nav-status.js', 'boards-maintenance.js',
+  'boards-safety.js', 'boards-question-bank-model.js', 'boards-visible-drive-client.js',
+  'boards-drive-backup.js', 'boards-question-vault.js', 'boards-hard-reset.js', 'boards-init.js'
 ];
 let lastIndex = -1;
 for (const script of scriptOrder) {
@@ -31,11 +32,18 @@ for (const script of scriptOrder) {
   lastIndex = index;
 }
 if (!html.includes('strict-origin-when-cross-origin')) fail('The strict referrer policy is missing from boards.html.');
+for (const region of ['welcome-tools', 'practice-builder', 'analytics', 'data-tools']) {
+  if (!html.includes(`data-dashboard-region="${region}"`)) fail(`The ${region} dashboard region is missing.`);
+}
+for (const stylesheet of ['./styles/tokens.css', './styles/ui-foundation.css', './styles/feature-panels.css']) {
+  if (!html.includes(stylesheet)) fail(`Required stylesheet is missing from boards.html: ${stylesheet}`);
+}
+if (html.includes('<style>')) fail('boards.html must not contain embedded presentation CSS.');
 
 function walk(directory) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(directory, entry.name);
-    if (entry.name === '.git') return [];
+    if (entry.name === '.git' || entry.name === 'node_modules') return [];
     return entry.isDirectory() ? walk(full) : [full];
   });
 }
@@ -117,6 +125,21 @@ for (const registeredModule of [
   if (!content.includes('BoardsConfig')) fail(`${registeredModule} must use centralized BoardsConfig.`);
 }
 
+const registryCode = read('ui/dashboard-registry.js');
+for (const capability of ['register', 'mountAll', 'data-dashboard-component', 'MutationObserver']) {
+  if (!registryCode.includes(capability)) fail(`Dashboard registry capability is missing: ${capability}`);
+}
+
+const tokenCss = read('styles/tokens.css');
+for (const token of ['--color-navy', '--color-surface', '--space-4', '--radius-lg', '--focus-ring']) {
+  if (!tokenCss.includes(token)) fail(`Required design token is missing: ${token}`);
+}
+
+const uiFoundationCss = read('styles/ui-foundation.css');
+for (const selector of ['.exam-countdown-card', '.startup-error', '.summary-stats']) {
+  if (!uiFoundationCss.includes(selector)) fail(`UI-foundation presentation is missing: ${selector}`);
+}
+
 const vaultCode = read('boards-question-vault.js');
 for (const safeguard of ['Vault.stagingBranch', 'production-history', 'draft-history', 'completed-test', 'approvedForAutomaticPublish: false']) {
   if (!vaultCode.includes(safeguard)) fail(`Question Vault safeguard is missing: ${safeguard}`);
@@ -136,9 +159,49 @@ if (hardResetCode.includes("'thedude9'")) fail('The reset code must not be embed
 if (hardResetCode.includes("method: 'DELETE'")) fail('Absolute reset must preserve cloud archives rather than deleting them.');
 
 const countdownCode = read('boards-exam-countdown.js');
-for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'browser’s local time']) {
+for (const capability of ['ABPN EXAM COUNTDOWN', 'setInterval(update, 1000)', 'browser’s local time', "region: 'welcome-tools'"]) {
   if (!countdownCode.includes(capability)) fail(`Exam countdown capability is missing: ${capability}`);
 }
+if (countdownCode.includes("createElement('style')") || countdownCode.includes('examCountdownCss')) {
+  fail('Countdown styling must remain separate from countdown behavior.');
+}
+
+const panelTemplateCode = read('ui/panel-templates.js');
+for (const factory of [
+  'createProgressManagementSection', 'createDriveBackupSection', 'createQuestionVaultSection',
+  'createHardResetCard', 'createHardResetModal'
+]) {
+  if (!panelTemplateCode.includes(factory)) fail(`Shared panel template is missing: ${factory}`);
+}
+for (const operationalModule of [
+  'boards-maintenance.js', 'boards-drive-backup.js', 'boards-question-vault.js', 'boards-hard-reset.js'
+]) {
+  const moduleCode = read(operationalModule);
+  if (moduleCode.includes("createElement('style')") || moduleCode.includes('style.textContent')) {
+    fail(`${operationalModule} must not inject presentation CSS.`);
+  }
+  if (!moduleCode.includes('BoardsPanelTemplates') || !moduleCode.includes('BoardsDashboardRegistry')) {
+    fail(`${operationalModule} must use shared panel templates and dashboard regions.`);
+  }
+}
+
+const dashboardViewsCode = read('ui/dashboard-views.js');
+for (const factory of [
+  'createAnalyticsSection', 'createTestReviewModal', 'analyticsMetrics', 'categoryTable',
+  'testHistoryRows', 'testReviewDetail', 'createBuilderOptions', 'subjectOptions', 'startupFailure'
+]) {
+  if (!dashboardViewsCode.includes(factory)) fail(`Shared dashboard view is missing: ${factory}`);
+}
+for (const operationalModule of ['boards-analytics.js', 'boards-builder.js']) {
+  const moduleCode = read(operationalModule);
+  if (!moduleCode.includes('BoardsDashboardViews') || !moduleCode.includes('BoardsDashboardRegistry')) {
+    fail(`${operationalModule} must use shared dashboard views and a declared dashboard region.`);
+  }
+  if (moduleCode.includes('<article class="dashboard-card"') || moduleCode.includes('<div class="form-section builder-section"')) {
+    fail(`${operationalModule} contains presentation markup that belongs in ui/dashboard-views.js.`);
+  }
+}
+if (!read('boards-init.js').includes('BoardsDashboardViews')) fail('Startup failure presentation must use the shared dashboard views.');
 
 const modelCode = read('boards-question-bank-model.js');
 if (!modelCode.includes('processedTestIds')) fail('Cumulative per-question performance must track processed test IDs.');
@@ -148,11 +211,18 @@ const requiredRepositoryFiles = [
   'schemas/question-bank.schema.json',
   'docs/QUESTION_BANK_GOVERNANCE.md',
   'docs/QUESTION_VAULT.md',
+  'docs/LAUNCH_HARDENING_TEST_PLAN.md',
+  'styles/tokens.css',
+  'styles/ui-foundation.css',
+  'styles/feature-panels.css',
+  'ui/dashboard-registry.js',
+  'ui/panel-templates.js',
+  'ui/dashboard-views.js',
   '.github/CODEOWNERS',
   '.github/pull_request_template.md'
 ];
 for (const file of requiredRepositoryFiles) {
-  if (!fs.existsSync(path.join(root, file))) fail(`Required governance file is missing: ${file}`);
+  if (!fs.existsSync(path.join(root, file))) fail(`Required governance or architecture file is missing: ${file}`);
 }
 
 const schemaPath = path.join(root, 'schemas/question-bank.schema.json');
@@ -172,4 +242,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(`Validated ${localAssets.length} local HTML assets and ${javascriptFiles.length} JavaScript files.`);
-console.log('Security, reset safety, countdown, question governance, and architecture checks passed.');
+console.log('Security, reset safety, countdown, UI presentation separation, question governance, and architecture checks passed.');

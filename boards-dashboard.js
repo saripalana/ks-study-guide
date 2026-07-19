@@ -2,6 +2,9 @@
   'use strict';
 
   const C = window.BoardsCore;
+  const Views = window.BoardsDashboardViews;
+  if (!C || !Views) throw new Error('Dashboard dependencies are unavailable.');
+
   const dashboardScreen = document.getElementById('dashboardScreen');
   const questionCountInput = document.getElementById('questionCount');
   const questionRangeText = document.getElementById('questionRangeText');
@@ -63,7 +66,7 @@
   function createRandomSet() {
     const count = C.clampQuestionCount(questionCountInput.value);
     questionCountInput.value = String(count);
-    const ids = C.shuffle(C.fullBank).slice(0, count).map(function (q) { return q.id; });
+    const ids = C.shuffle(C.fullBank).slice(0, count).map(function (question) { return question.id; });
     const timed = selectedTiming === 'timed';
     createSet(ids, selectedMode, timed, timed ? readDurationInputs() : null, 'random');
   }
@@ -73,16 +76,12 @@
     const state = C.appState();
     const history = C.historyState();
     const config = C.activeConfig();
-    const ids = C.fullBank.filter(function (q) {
-      if (type === 'flagged') return !!state.flagged[q.id];
-      const status = C.statusForQuestion(q, state, history, config);
+    const ids = C.fullBank.filter(function (question) {
+      if (type === 'flagged') return !!state.flagged[question.id];
+      const status = C.statusForQuestion(question, state, history, config);
       return status === 'incorrect' || status === 'omitted';
-    }).map(function (q) { return q.id; });
+    }).map(function (question) { return question.id; });
     if (ids.length) createSet(C.shuffle(ids), 'quiz', false, null, type);
-  }
-
-  function statCard(value, label, className) {
-    return '<div class="stat-card ' + (className || '') + '"><div class="stat-value">' + value + '</div><div class="stat-label">' + label + '</div></div>';
   }
 
   function renderSummaryStats() {
@@ -95,22 +94,23 @@
     let unused = 0;
     let flagged = 0;
 
-    C.fullBank.forEach(function (q) {
-      const status = C.statusForQuestion(q, state, history, config);
+    C.fullBank.forEach(function (question) {
+      const status = C.statusForQuestion(question, state, history, config);
       if (status === 'correct') correct += 1;
       else if (status === 'incorrect' || status === 'omitted') incorrect += 1;
       else if (status === 'answered') answered += 1;
       else unused += 1;
-      if (state.flagged[q.id]) flagged += 1;
+      if (state.flagged[question.id]) flagged += 1;
     });
 
-    summaryStats.innerHTML =
-      statCard(C.fullBank.length, 'Total questions', '') +
-      statCard(correct, 'Correct', 'correct') +
-      statCard(incorrect, 'Incorrect / omitted', 'incorrect') +
-      statCard(answered, 'Answered, not scored', '') +
-      statCard(flagged, 'Flagged', 'flagged') +
-      statCard(unused, 'Unused', 'unused');
+    summaryStats.innerHTML = Views.summaryStats([
+      { value: C.fullBank.length, label: 'Total questions' },
+      { value: correct, label: 'Correct', className: 'correct' },
+      { value: incorrect, label: 'Incorrect / omitted', className: 'incorrect' },
+      { value: answered, label: 'Answered, not scored' },
+      { value: flagged, label: 'Flagged', className: 'flagged' },
+      { value: unused, label: 'Unused', className: 'unused' }
+    ]);
 
     document.getElementById('reviewIncorrectCount').textContent = String(incorrect);
     document.getElementById('reviewFlaggedCount').textContent = String(flagged);
@@ -128,15 +128,22 @@
     const state = C.appState();
     const answered = C.countProgress(config, state);
     const flagged = config.ids.reduce(function (count, id) { return count + (state.flagged[id] ? 1 : 0); }, 0);
-    const remaining = config.timed && config.endAt ? Math.max(0, Math.ceil((config.endAt - Date.now()) / 1000)) : null;
+    const remainingSeconds = config.timed && config.endAt ? Math.max(0, Math.ceil((config.endAt - Date.now()) / 1000)) : null;
     const completed = config.status === 'completed' || (config.mode === 'test' && !!state.testSubmitted['all|study']);
-    const label = config.kind === 'random' ? 'practice set' : config.kind + ' review';
-    const timeLabel = config.timed ? (remaining > 0 ? C.formatClock(remaining) + ' remaining' : 'Time expired') : 'Untimed';
+    const kind = config.kind || 'practice';
+    const label = kind === 'random' ? 'practice set' : kind + ' review';
+    const timeLabel = config.timed ? (remainingSeconds > 0 ? C.formatClock(remainingSeconds) + ' remaining' : 'Time expired') : 'Untimed';
 
-    resumeCard.innerHTML =
-      '<div class="resume-heading"><div><div class="card-kicker">' + (completed ? 'COMPLETED SET' : 'CURRENT SET') + '</div><h3>' + config.ids.length + '-question ' + label + '</h3><div class="field-help">' + timeLabel + '</div></div><span class="resume-mode">' + (config.mode === 'test' ? 'TEST MODE' : 'TUTOR MODE') + '</span></div>' +
-      '<div class="resume-meta"><div class="resume-metric"><strong>' + answered + '</strong><span>Answered</span></div><div class="resume-metric"><strong>' + (config.ids.length - answered) + '</strong><span>Remaining</span></div><div class="resume-metric"><strong>' + flagged + '</strong><span>Flagged</span></div></div>' +
-      '<div class="resume-actions"><button type="button" id="resumeSetBtn" class="primary-button">' + (completed ? 'Review set' : 'Resume set') + '</button><button type="button" id="discardSetBtn" class="secondary-button">Remove set</button></div>';
+    resumeCard.innerHTML = Views.resumeCard({
+      completed: completed,
+      count: config.ids.length,
+      label: label,
+      timeLabel: timeLabel,
+      modeLabel: config.mode === 'test' ? 'TEST MODE' : 'TUTOR MODE',
+      answered: answered,
+      remaining: config.ids.length - answered,
+      flagged: flagged
+    });
 
     document.getElementById('resumeSetBtn').addEventListener('click', window.BoardsExam.launch);
     document.getElementById('discardSetBtn').addEventListener('click', function () {
@@ -147,17 +154,9 @@
   }
 
   function renderLegendAndFilters() {
-    bankLegend.innerHTML =
-      '<span class="legend-item"><span class="legend-swatch unused"></span>Unused</span>' +
-      '<span class="legend-item"><span class="legend-swatch answered"></span>Answered, not scored</span>' +
-      '<span class="legend-item"><span class="legend-swatch correct"></span>Correct</span>' +
-      '<span class="legend-item"><span class="legend-swatch incorrect"></span>Incorrect / omitted</span>' +
-      '<span class="legend-item"><span class="legend-swatch flagged"></span>Flagged</span>';
-
-    const filters = [['all','All'],['unused','Unused'],['answered','Answered'],['correct','Correct'],['incorrect','Incorrect'],['flagged','Flagged']];
-    bankFilters.innerHTML = filters.map(function (item) {
-      return '<button type="button" class="filter-button ' + (currentFilter === item[0] ? 'selected' : '') + '" data-filter="' + item[0] + '">' + item[1] + '</button>';
-    }).join('');
+    bankLegend.innerHTML = Views.bankLegend();
+    const filters = [['all', 'All'], ['unused', 'Unused'], ['answered', 'Answered'], ['correct', 'Correct'], ['incorrect', 'Incorrect'], ['flagged', 'Flagged']];
+    bankFilters.innerHTML = Views.bankFilters(filters, currentFilter);
     bankFilters.querySelectorAll('.filter-button').forEach(function (button) {
       button.addEventListener('click', function () {
         currentFilter = button.getAttribute('data-filter');
@@ -171,15 +170,23 @@
     const history = C.historyState();
     const config = C.activeConfig();
     renderLegendAndFilters();
-    bankGrid.innerHTML = C.fullBank.map(function (q, index) {
-      const status = C.statusForQuestion(q, state, history, config);
-      const flagged = !!state.flagged[q.id];
+    const items = C.fullBank.map(function (question, index) {
+      const status = C.statusForQuestion(question, state, history, config);
+      const flagged = !!state.flagged[question.id];
       const matches = currentFilter === 'all' || currentFilter === status ||
         (currentFilter === 'incorrect' && (status === 'incorrect' || status === 'omitted')) ||
         (currentFilter === 'flagged' && flagged);
-      const title = 'Question ' + (index + 1) + ' · Chapter ' + q.chapter + ', Q' + q.qnum + ' · ' + status + (flagged ? ' · flagged' : '');
-      return '<button type="button" class="bank-tile ' + status + (flagged ? ' flagged' : '') + (matches ? '' : ' filtered-out') + '" title="' + title + '" aria-label="' + title + '">' + (index + 1) + '</button>';
-    }).join('');
+      const title = 'Question ' + (index + 1) + ' · Chapter ' + question.chapter + ', Q' + question.qnum + ' · ' + status + (flagged ? ' · flagged' : '');
+      return {
+        id: question.id,
+        number: index + 1,
+        status: status,
+        flagged: flagged,
+        matches: matches,
+        title: title
+      };
+    });
+    bankGrid.innerHTML = Views.questionBankTiles(items);
   }
 
   function render() {

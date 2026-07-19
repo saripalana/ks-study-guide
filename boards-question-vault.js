@@ -5,7 +5,9 @@
   const Store = window.BoardsStore;
   const Model = window.BoardsQuestionBankModel;
   const DriveFactory = window.BoardsVisibleDriveClient;
-  if (!Config || !Store || !Model || !DriveFactory || !Config.questionVault) {
+  const Panels = window.BoardsPanelTemplates;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Store || !Model || !DriveFactory || !Panels || !Registry || !Config.questionVault) {
     throw new Error('Question vault dependencies are unavailable.');
   }
 
@@ -34,11 +36,6 @@
     onError: handleError
   });
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function timestampName() {
     return new Date().toISOString().replace(/[:.]/g, '-');
@@ -96,63 +93,33 @@
     }
   }
 
-  function ensureUi() {
-    if (document.getElementById('questionVaultSection')) return;
-    const column = document.querySelector('.dashboard-column-wide');
-    if (!column) return;
-
-    const style = document.createElement('style');
-    style.id = 'questionVaultCss';
-    style.textContent =
-      '.question-vault-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}' +
-      '.question-vault-note{margin-top:12px;padding:11px 12px;border-left:4px solid #6d55a4;background:#f5f2fb;border-radius:5px;color:#4b3d68;font-size:12px;line-height:1.5}' +
-      '.question-vault-summary{margin-top:12px;color:var(--muted);font-size:12px}' +
-      '.question-vault-actions a.secondary-button{display:inline-flex;align-items:center;text-decoration:none}';
-    document.head.appendChild(style);
-
-    const section = document.createElement('section');
-    section.id = 'questionVaultSection';
-    section.className = 'progress-management-section';
-    section.innerHTML =
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">QUESTION DATA VAULT</div><h3>Visible Google Drive question archive</h3>' +
-      '<p class="field-help">Stores the complete question bank and correlated performance in a dedicated folder created by this app. It cannot browse unrelated Drive files.</p></div></div>' +
-      '<div class="question-vault-actions"><button type="button" id="connectQuestionVault" class="primary-button">Connect Question Vault</button>' +
-      '<button type="button" id="syncQuestionBankVault" class="secondary-button" disabled>Sync production mirror</button>' +
-      '<button type="button" id="syncQuestionPerformance" class="secondary-button" disabled>Sync performance</button>' +
-      '<button type="button" id="refreshCorrelatedExport" class="secondary-button" disabled>Refresh AI-ready export</button>' +
-      '<a id="openQuestionVault" class="secondary-button" target="_blank" rel="noopener" hidden>Open vault in Drive</a>' +
-      '<button type="button" id="disconnectQuestionVault" class="secondary-button" disabled>Disconnect vault session</button>' +
-      '<button type="button" id="revokeQuestionVault" class="secondary-button" disabled>Revoke vault access</button></div>' +
-      '<div id="questionVaultStatus" class="drive-backup-status neutral">Not connected. This optional vault uses only the limited drive.file permission.</div>' +
-      '<div id="questionVaultSummary" class="question-vault-summary">Not initialized yet.</div>' +
-      '<div class="question-vault-note"><strong>Safety boundary:</strong> the live site still uses the reviewed question bank in GitHub main. Drive Production is a mirror; Drive Drafts never publish automatically. Proposed question changes belong in the separate <code>' + escapeHtml(Vault.stagingBranch) + '</code> branch and require validation before merging.</div></article>' +
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">DRAFT WORKSPACE</div><h3>Safe question editing environment</h3>' +
-      '<p class="field-help">Create a draft copy for proposed question, answer, or explanation changes. Existing drafts are archived before replacement.</p></div></div>' +
-      '<div class="question-vault-actions"><button type="button" id="createQuestionDraft" class="secondary-button" disabled>Create or refresh draft</button>' +
-      '<button type="button" id="validateQuestionDraft" class="secondary-button" disabled>Validate Drive draft</button></div>' +
-      '<div id="questionDraftStatus" class="drive-backup-status neutral">No draft has been inspected during this session.</div></article>';
-
-    const driveSection = document.getElementById('driveBackupSection');
-    if (driveSection && driveSection.parentNode === column) driveSection.insertAdjacentElement('afterend', section);
-    else column.appendChild(section);
-
-    document.getElementById('connectQuestionVault').addEventListener('click', function () {
+  function mountUi() {
+    const existing = document.getElementById('questionVaultSection');
+    if (existing) return existing;
+    const section = Panels.createQuestionVaultSection(Vault.stagingBranch);
+    section.querySelector('#connectQuestionVault').addEventListener('click', function () {
       try { drive.connect(); }
       catch (error) { handleError(error); }
     });
-    document.getElementById('syncQuestionBankVault').addEventListener('click', function () { syncProduction(false).catch(handleError); });
-    document.getElementById('syncQuestionPerformance').addEventListener('click', function () { syncPerformance(true).catch(handleError); });
-    document.getElementById('refreshCorrelatedExport').addEventListener('click', function () { refreshCorrelated().catch(handleError); });
-    document.getElementById('createQuestionDraft').addEventListener('click', function () { createDraft().catch(handleError); });
-    document.getElementById('validateQuestionDraft').addEventListener('click', function () { validateDraft().catch(handleError); });
-    document.getElementById('disconnectQuestionVault').addEventListener('click', function () {
+    section.querySelector('#syncQuestionBankVault').addEventListener('click', function () { syncProduction(false).catch(handleError); });
+    section.querySelector('#syncQuestionPerformance').addEventListener('click', function () { syncPerformance(true).catch(handleError); });
+    section.querySelector('#refreshCorrelatedExport').addEventListener('click', function () { refreshCorrelated().catch(handleError); });
+    section.querySelector('#createQuestionDraft').addEventListener('click', function () { createDraft().catch(handleError); });
+    section.querySelector('#validateQuestionDraft').addEventListener('click', function () { validateDraft().catch(handleError); });
+    section.querySelector('#disconnectQuestionVault').addEventListener('click', function () {
       drive.disconnect();
       setStatus('Disconnected from the Question Vault for this browser session.', 'neutral');
     });
-    document.getElementById('revokeQuestionVault').addEventListener('click', function () {
+    section.querySelector('#revokeQuestionVault').addEventListener('click', function () {
       drive.revoke(function () { setStatus('Question Vault access was revoked at Google.', 'good'); });
     });
-    updateUi();
+    setTimeout(updateUi, 0);
+    return section;
+  }
+
+  function ensureUi() {
+    if (document.getElementById('questionVaultSection')) return;
+    Registry.register({ id: 'question-vault', region: 'data-tools', order: 300, mount: mountUi });
   }
 
   async function writeManifest(patch) {

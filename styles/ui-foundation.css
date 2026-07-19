@@ -1,0 +1,91 @@
+.dashboard-region:empty {
+  display:none;
+}
+
+.dashboard-region-welcome-tools {
+  margin-left:auto;
+}
+
+.dashboard-region-practice-builder {
+  margin-top:0;
+}
+
+.summary-stats {
+  grid-template-columns:repeat(6,minmax(110px,1fr));
+}
+
+.startup-error {
+  max-width:720px;
+  margin:48px auto;
+  padding:24px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+}
+
+.startup-error h1 {
+  color:var(--navy-dark);
+}
+
+.exam-countdown-card {
+  min-width:330px;
+  padding:var(--space-4) 18px;
+  border:1px solid #bfd1e3;
+  border-radius:10px;
+  background:linear-gradient(135deg,#f7fbff,#eef5fc);
+  box-shadow:0 1px 2px rgba(15,42,71,.05);
+}
+
+.exam-countdown-kicker {
+  color:var(--blue);
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.09em;
+}
+
+.exam-countdown-value {
+  margin-top:5px;
+  color:var(--navy-dark);
+  font-size:25px;
+  font-weight:850;
+  font-variant-numeric:tabular-nums;
+  line-height:1.15;
+}
+
+.exam-countdown-label {
+  margin-top:5px;
+  color:#62758a;
+  font-size:12px;
+}
+
+.exam-countdown-card.exam-day {
+  border-color:#7bc291;
+  background:#edf8f1;
+}
+
+.exam-countdown-card.exam-day .exam-countdown-value {
+  color:#17633a;
+}
+
+@media(max-width:1100px) {
+  .summary-stats { grid-template-columns:repeat(3,1fr); }
+}
+
+@media(max-width:900px) {
+  .welcome-row {
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .dashboard-region-welcome-tools {
+    width:100%;
+    margin-left:0;
+  }
+
+  .exam-countdown-card {
+    width:100%;
+    min-width:0;
+  }
+}
+
+@media(max-width:620px) {
+  .summary-stats { grid-template-columns:repeat(2,1fr); }
+}

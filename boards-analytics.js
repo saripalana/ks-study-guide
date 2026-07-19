@@ -4,7 +4,9 @@
   const Config = window.BoardsConfig;
   const Store = window.BoardsStore;
   const C = window.BoardsCore;
-  if (!Config || !Store || !C) throw new Error('Analytics dependencies are unavailable.');
+  const Views = window.BoardsDashboardViews;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Store || !C || !Views || !Registry) throw new Error('Analytics dependencies are unavailable.');
 
   const TESTS_KEY = Config.storage.keys.tests;
   const DELETED_KEY = Config.storage.keys.deletedTests;
@@ -16,12 +18,6 @@
   let pendingTimes = {};
   let pendingSetId = null;
   let secondsSinceFlush = 0;
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function formatSeconds(value) {
     const seconds = Math.max(0, Math.round(Number(value) || 0));
@@ -278,27 +274,22 @@
     };
   }
 
+  function mountUi() {
+    const existing = document.getElementById('analyticsSection');
+    if (existing) return existing;
+    const wrapper = Views.createAnalyticsSection();
+    if (!document.getElementById('testReviewModal')) {
+      const modal = Views.createTestReviewModal();
+      document.body.appendChild(modal);
+      modal.addEventListener('click', function (event) { if (event.target === modal) modal.hidden = true; });
+      modal.querySelector('#closeHistoryModal').addEventListener('click', function () { modal.hidden = true; });
+    }
+    return wrapper;
+  }
+
   function ensureUi() {
     if (document.getElementById('analyticsSection')) return;
-    const target = document.querySelector('.dashboard-column-wide');
-    if (!target) return;
-
-    const wrapper = document.createElement('section');
-    wrapper.id = 'analyticsSection';
-    wrapper.className = 'analytics-section';
-    wrapper.innerHTML =
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">ANALYTICS</div><h3>Performance by category</h3></div></div><div id="analyticsMetrics" class="analytics-metrics"></div><div id="categoryTable"></div></article>' +
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">HISTORY</div><h3>Previous tests</h3><p class="field-help">Completed sets are saved for detailed review and included in Drive backup.</p></div></div><div id="testHistory"></div></article>';
-    target.appendChild(wrapper);
-
-    const modal = document.createElement('div');
-    modal.id = 'testReviewModal';
-    modal.className = 'history-modal';
-    modal.hidden = true;
-    modal.innerHTML = '<div class="history-dialog" role="dialog" aria-modal="true" aria-labelledby="historyReviewTitle"><button id="closeHistoryModal" class="history-close" type="button" aria-label="Close review">×</button><div id="historyDetail"></div></div>';
-    document.body.appendChild(modal);
-    modal.addEventListener('click', function (event) { if (event.target === modal) modal.hidden = true; });
-    document.getElementById('closeHistoryModal').addEventListener('click', function () { modal.hidden = true; });
+    Registry.register({ id: 'analytics-history', region: 'analytics', order: 100, mount: mountUi });
   }
 
   function deleteSavedTest(id) {
@@ -339,26 +330,8 @@
     if (!test) return;
     const modal = document.getElementById('testReviewModal');
     const detail = document.getElementById('historyDetail');
-
-    const categoryRows = (test.categories || []).map(function (category) {
-      return '<tr><td>Ch ' + category.chapter + ' — ' + escapeHtml(category.title) + '</td><td>' + category.total + '</td><td>' + category.correct + '</td><td>' + category.accuracyPct + '%</td><td>' + formatSeconds(category.averageSeconds) + '</td></tr>';
-    }).join('');
-
-    const questions = test.ids.map(function (questionId, index) {
-      const question = byId.get(questionId);
-      const result = test.results[questionId] || {};
-      if (!question) return '';
-      const selected = result.selectedLetter || 'Omitted';
-      const selectedText = result.selectedLetter ? answerText(question, result.selectedLetter) : '';
-      const correctText = answerText(question, question.correctLetter);
-      return '<details class="review-question ' + escapeHtml(result.status) + '"><summary>Question ' + (index + 1) + ' · Ch ' + question.chapter + ' Q' + question.qnum + ' · ' + escapeHtml(result.status) + ' · ' + formatSeconds(result.seconds) + '</summary>' +
-        '<p>' + escapeHtml(question.question) + '</p>' +
-        '<p><strong>Your answer:</strong> ' + escapeHtml(selected) + (selectedText ? ' — ' + escapeHtml(selectedText) : '') + '</p>' +
-        '<p><strong>Correct answer:</strong> ' + escapeHtml(question.correctLetter) + ' — ' + escapeHtml(correctText) + '</p>' +
-        '<p class="review-explanation">' + escapeHtml(question.explanation || '') + '</p></details>';
-    }).join('');
-
-    detail.innerHTML = '<h2 id="historyReviewTitle">Saved test review</h2><div class="review-summary"><strong>' + test.scorePct + '%</strong><span>' + test.correct + ' correct · ' + test.incorrect + ' incorrect · ' + test.omitted + ' omitted</span><span>' + formatSeconds(test.averageSeconds) + ' average per answered question</span><span>' + formatDate(test.completedAt) + '</span></div><h3>Category breakdown</h3><div class="review-table-wrap"><table><thead><tr><th>Category</th><th>Completed</th><th>Correct</th><th>Accuracy</th><th>Avg time</th></tr></thead><tbody>' + categoryRows + '</tbody></table></div><h3>Question review</h3>' + questions;
+    if (!modal || !detail) return;
+    detail.innerHTML = Views.testReviewDetail(test, byId, answerText, formatDate, formatSeconds);
     modal.hidden = false;
   }
 
@@ -371,26 +344,9 @@
     const historyContainer = document.getElementById('testHistory');
     if (!metricContainer || !categoryContainer || !historyContainer) return;
 
-    metricContainer.innerHTML = [
-      ['Completed tests', metrics.tests],
-      ['Unique questions completed', metrics.unique],
-      ['Total answered', metrics.responses],
-      ['Overall accuracy', metrics.accuracy + '%'],
-      ['Average time / question', formatSeconds(metrics.average)]
-    ].map(function (item) {
-      return '<div class="analytics-metric"><strong>' + item[1] + '</strong><span>' + item[0] + '</span></div>';
-    }).join('');
-
-    categoryContainer.innerHTML = metrics.categories.length
-      ? '<div class="category-table"><div class="category-row category-head"><span>Category</span><span>Completed</span><span>Correct</span><span>Accuracy</span><span>Avg time</span></div>' + metrics.categories.map(function (category) {
-        return '<div class="category-row"><span><strong>Ch ' + category.chapter + '</strong> ' + escapeHtml(category.title) + '</span><span>' + category.attempts + '</span><span>' + category.correct + '</span><span>' + category.accuracy + '%</span><span>' + formatSeconds(category.average) + '</span></div>';
-      }).join('') + '</div>'
-      : '<div class="analytics-empty">Complete a test or tutor set to begin building category analytics.</div>';
-
-    const list = tests();
-    historyContainer.innerHTML = list.length ? list.map(function (test) {
-      return '<div class="history-row"><div><strong>' + test.total + ' questions · ' + (test.mode === 'test' ? 'Test' : 'Tutor') + '</strong><span>' + formatDate(test.completedAt) + '</span></div><div class="history-score">' + test.scorePct + '%</div><div class="history-meta">' + test.correct + ' correct · ' + test.incorrect + ' incorrect · ' + test.omitted + ' omitted<br>' + formatSeconds(test.averageSeconds) + ' / question</div><div class="history-actions"><button type="button" class="secondary-button review-history" data-id="' + escapeHtml(test.setId) + '">Review</button><button type="button" class="secondary-button delete-history" data-id="' + escapeHtml(test.setId) + '">Delete</button></div></div>';
-    }).join('') : '<div class="analytics-empty">No completed tests saved yet.</div>';
+    metricContainer.innerHTML = Views.analyticsMetrics(metrics, formatSeconds);
+    categoryContainer.innerHTML = Views.categoryTable(metrics.categories, formatSeconds);
+    historyContainer.innerHTML = Views.testHistoryRows(tests(), formatDate, formatSeconds);
 
     historyContainer.querySelectorAll('.review-history').forEach(function (button) {
       button.addEventListener('click', function () { showReview(button.getAttribute('data-id')); });

@@ -6,12 +6,15 @@
     ['BoardsStore', window.BoardsStore],
     ['BoardsCore', window.BoardsCore],
     ['BoardsExam', window.BoardsExam],
-    ['BoardsDashboard', window.BoardsDashboard]
+    ['BoardsDashboard', window.BoardsDashboard],
+    ['BoardsDashboardViews', window.BoardsDashboardViews]
   ];
   const missing = required.filter(function (item) { return !item[1]; }).map(function (item) { return item[0]; });
 
   if (missing.length || !window.BoardsCore.fullBank.length) {
-    document.body.innerHTML = '<main style="max-width:720px;margin:48px auto;padding:24px;font-family:Arial,sans-serif"><h1>Practice page could not start</h1><p>A required application module did not load correctly.</p><p><strong>Missing:</strong> ' + (missing.join(', ') || 'question data') + '</p><p>Refresh the page. If the problem continues, check the repository validation workflow.</p></main>';
+    document.body.innerHTML = window.BoardsDashboardViews
+      ? window.BoardsDashboardViews.startupFailure(missing)
+      : '<main><h1>Practice page could not start</h1><p>A required application module did not load correctly.</p></main>';
     console.error('Boards application failed startup validation.', { missing: missing, questions: window.BoardsCore && window.BoardsCore.fullBank.length });
     return;
   }

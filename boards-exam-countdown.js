@@ -2,7 +2,8 @@
   'use strict';
 
   const Config = window.BoardsConfig;
-  if (!Config || !Config.exam) return;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Config.exam || !Registry) return;
 
   let timer = null;
 
@@ -12,40 +13,22 @@
     return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
   }
 
-  function addStyles() {
-    if (document.getElementById('examCountdownCss')) return;
-    const style = document.createElement('style');
-    style.id = 'examCountdownCss';
-    style.textContent =
-      '.welcome-row{align-items:stretch;gap:18px}' +
-      '.exam-countdown-card{margin-left:auto;min-width:330px;padding:16px 18px;border:1px solid #bfd1e3;border-radius:10px;background:linear-gradient(135deg,#f7fbff,#eef5fc);box-shadow:0 1px 2px rgba(15,42,71,.05)}' +
-      '.exam-countdown-kicker{font-size:11px;font-weight:800;letter-spacing:.09em;color:#2768a5}' +
-      '.exam-countdown-value{margin-top:5px;font-size:25px;line-height:1.15;font-weight:850;color:#0f2a47;font-variant-numeric:tabular-nums}' +
-      '.exam-countdown-label{margin-top:5px;font-size:12px;color:#62758a}' +
-      '.exam-countdown-card.exam-day{border-color:#7bc291;background:#edf8f1}' +
-      '.exam-countdown-card.exam-day .exam-countdown-value{color:#17633a}' +
-      '@media(max-width:900px){.welcome-row{flex-direction:column}.exam-countdown-card{margin-left:0;min-width:0;width:100%}}';
-    document.head.appendChild(style);
-  }
-
-  function ensureUi() {
-    if (document.getElementById('examCountdown')) return;
-    const welcome = document.querySelector('.welcome-row');
-    if (!welcome) return;
-    addStyles();
+  function mountCountdown(container) {
     const card = document.createElement('aside');
     card.id = 'examCountdown';
     card.className = 'exam-countdown-card';
-    card.setAttribute('aria-live', 'polite');
+    card.setAttribute('role', 'timer');
+    card.setAttribute('aria-live', 'off');
+    card.setAttribute('aria-label', 'ABPN examination countdown');
     card.innerHTML =
       '<div class="exam-countdown-kicker">ABPN EXAM COUNTDOWN</div>' +
       '<div id="examCountdownValue" class="exam-countdown-value">Calculating…</div>' +
       '<div id="examCountdownLabel" class="exam-countdown-label"></div>';
-    welcome.appendChild(card);
+    container.appendChild(card);
+    return card;
   }
 
   function update() {
-    ensureUi();
     const card = document.getElementById('examCountdown');
     const value = document.getElementById('examCountdownValue');
     const label = document.getElementById('examCountdownLabel');
@@ -84,6 +67,12 @@
   }
 
   function init() {
+    Registry.register({
+      id: 'exam-countdown',
+      region: 'welcome-tools',
+      order: 10,
+      mount: mountCountdown
+    });
     update();
     timer = setInterval(update, 1000);
   }
