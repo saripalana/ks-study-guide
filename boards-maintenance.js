@@ -4,17 +4,13 @@
   const Config = window.BoardsConfig;
   const Store = window.BoardsStore;
   const C = window.BoardsCore;
-  if (!Config || !Store || !C) throw new Error('Maintenance dependencies are unavailable.');
+  const Panels = window.BoardsPanelTemplates;
+  const Registry = window.BoardsDashboardRegistry;
+  if (!Config || !Store || !C || !Panels || !Registry) throw new Error('Maintenance dependencies are unavailable.');
 
   const KEYS = Config.storage.keys;
   let selecting = false;
   const selected = new Set();
-
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (character) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
-    });
-  }
 
   function formatDate(value) {
     return new Date(value).toLocaleString([], {
@@ -189,58 +185,39 @@
   function renderBackups() {
     const container = document.getElementById('backupHistory');
     if (!container) return;
-    const list = backupList();
-    container.innerHTML = list.length ? list.map(function (backup) {
-      const count = backup.metadata && backup.metadata.count ? ' · ' + backup.metadata.count + ' questions' : '';
-      return '<div class="backup-row"><div><strong>' + escapeHtml(backup.reason) + '</strong><span>' + formatDate(backup.createdAt) + count + '</span></div><div class="backup-actions"><button type="button" class="secondary-button restore-backup" data-id="' + escapeHtml(backup.id) + '">Restore</button><button type="button" class="secondary-button download-backup" data-id="' + escapeHtml(backup.id) + '">Download</button><button type="button" class="secondary-button delete-backup" data-id="' + escapeHtml(backup.id) + '">Delete</button></div></div>';
-    }).join('') : '<div class="analytics-empty">No reset backups yet. One will be created automatically before the first reset.</div>';
+    container.innerHTML = Panels.recoveryBackupRows(backupList(), formatDate);
   }
 
-  function addStyles() {
-    if (document.getElementById('maintenanceCss')) return;
-    const style = document.createElement('style');
-    style.id = 'maintenanceCss';
-    style.textContent =
-      '.progress-management-section{display:flex;flex-direction:column;gap:18px}.reset-action-row{display:flex;flex-wrap:wrap;gap:9px}.reset-selection-summary{margin-top:12px;padding:10px 12px;border:1px solid var(--border);border-radius:6px;background:#f7f9fb;color:var(--muted);font-size:12px}.bank-grid.reset-selection-mode{padding:7px;border:2px dashed #2768a5;border-radius:7px;background:#f4f8fc}.bank-grid.reset-selection-mode .bank-tile{cursor:pointer}.bank-tile.reset-selected{outline:3px solid #6d55a4;outline-offset:1px;background:#eee9fb!important;border-color:#6d55a4!important;color:#4b347d!important}.bank-tile.reset-selected:before{content:"✓";position:absolute;left:2px;top:0;font-size:9px;font-weight:900}.backup-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-top:1px solid var(--border)}.backup-row:first-child{border-top:0}.backup-row>div:first-child span{display:block;margin-top:4px;color:var(--muted);font-size:11px}.backup-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.danger-button:disabled,.secondary-button:disabled{opacity:.45;cursor:not-allowed}@media(max-width:700px){.backup-row{align-items:flex-start;flex-direction:column}.backup-actions{justify-content:flex-start}.reset-action-row>*{flex:1 1 150px}}';
-    document.head.appendChild(style);
+  function mountUi() {
+    const existing = document.getElementById('progressManagementSection');
+    if (existing) return existing;
+    const section = Panels.createProgressManagementSection();
+
+    section.querySelector('#toggleResetSelection').addEventListener('click', function () {
+      selecting = !selecting;
+      syncTiles();
+    });
+    section.querySelector('#clearResetSelection').addEventListener('click', function () {
+      selected.clear();
+      syncTiles();
+    });
+    section.querySelector('#resetSelectedQuestions').addEventListener('click', function () {
+      resetQuestions(Array.from(selected), 'resetting selected questions');
+    });
+    section.querySelector('#resetEntireBank').addEventListener('click', function () {
+      resetQuestions(C.fullBank.map(function (question) { return question.id; }), 'resetting the entire question bank');
+    });
+    section.querySelector('#createManualBackup').addEventListener('click', function () {
+      alert(backupNow('Manual backup', { type: 'manual' }) ? 'Backup created.' : 'Backup could not be saved.');
+    });
+    section.querySelector('#backupHistory').innerHTML = Panels.recoveryBackupRows(backupList(), formatDate);
+    setTimeout(syncTiles, 0);
+    return section;
   }
 
   function ensureUi() {
     if (document.getElementById('progressManagementSection')) return;
-    const column = document.querySelector('.dashboard-column-wide');
-    if (!column) return;
-    addStyles();
-
-    const section = document.createElement('section');
-    section.id = 'progressManagementSection';
-    section.className = 'progress-management-section';
-    section.innerHTML =
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">PROGRESS MANAGEMENT</div><h3>Reset questions safely</h3><p class="field-help">Every reset creates a recoverable backup. Saved Previous tests remain unless deleted separately.</p></div></div><div class="reset-action-row"><button type="button" id="toggleResetSelection" class="secondary-button">Select questions</button><button type="button" id="clearResetSelection" class="secondary-button" disabled>Clear selection</button><button type="button" id="resetSelectedQuestions" class="danger-button" disabled>Reset selected</button><button type="button" id="resetEntireBank" class="danger-button">Reset entire bank</button></div><div id="resetSelectionSummary" class="reset-selection-summary"></div></article>' +
-      '<article class="dashboard-card"><div class="card-heading-row"><div><div class="card-kicker">RECOVERY</div><h3>Reset backups</h3><p class="field-help">Restore a prior state or download a backup file.</p></div><button type="button" id="createManualBackup" class="secondary-button">Create backup</button></div><div id="backupHistory"></div></article>';
-
-    const analytics = document.getElementById('analyticsSection');
-    if (analytics && analytics.parentNode === column) analytics.insertAdjacentElement('afterend', section);
-    else column.appendChild(section);
-
-    document.getElementById('toggleResetSelection').addEventListener('click', function () {
-      selecting = !selecting;
-      syncTiles();
-    });
-    document.getElementById('clearResetSelection').addEventListener('click', function () {
-      selected.clear();
-      syncTiles();
-    });
-    document.getElementById('resetSelectedQuestions').addEventListener('click', function () {
-      resetQuestions(Array.from(selected), 'resetting selected questions');
-    });
-    document.getElementById('resetEntireBank').addEventListener('click', function () {
-      resetQuestions(C.fullBank.map(function (question) { return question.id; }), 'resetting the entire question bank');
-    });
-    document.getElementById('createManualBackup').addEventListener('click', function () {
-      alert(backupNow('Manual backup', { type: 'manual' }) ? 'Backup created.' : 'Backup could not be saved.');
-    });
-    renderBackups();
-    syncTiles();
+    Registry.register({ id: 'progress-management', region: 'data-tools', order: 100, mount: mountUi });
   }
 
   function refreshAll() {
