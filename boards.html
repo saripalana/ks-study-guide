@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex, nofollow, noarchive">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <title>Psychiatry Board Practice</title>
+  <title>ABPN Psychiatry Study</title>
   <link rel="stylesheet" href="./styles/tokens.css?v=1">
   <link rel="stylesheet" href="./boards-shell.css?v=4">
   <link rel="stylesheet" href="./styles/ui-foundation.css?v=2">
   <link rel="stylesheet" href="./styles/feature-panels.css?v=1">
-  <link rel="stylesheet" href="./styles/device-sync.css?v=3">
+  <link rel="stylesheet" href="./styles/device-sync.css?v=4">
   <link rel="stylesheet" href="./boards-analytics.css?v=4">
   <link rel="stylesheet" href="./boards-builder.css?v=2">
 </head>
@@ -18,8 +18,8 @@
   <div id="dashboardScreen" class="dashboard-screen">
     <header class="dashboard-topbar">
       <div>
-        <div class="dashboard-eyebrow">K&amp;S QUESTION BANK</div>
-        <h1>Psychiatry Board Practice</h1>
+        <div class="dashboard-eyebrow">ABPN PSYCHIATRY STUDY SITE</div>
+        <h1>ABPN Psychiatry Study</h1>
       </div>
       <div class="dashboard-top-actions">
         <a href="./index.html" class="text-link">Original study guide</a>
@@ -29,8 +29,8 @@
     <main class="dashboard-main">
       <section class="welcome-row">
         <div>
-          <h2>Practice dashboard</h2>
-          <p>Create a new randomized set, resume your current set, or review your question-bank status.</p>
+          <h2>Study dashboard</h2>
+          <p>Choose a question bank, create or resume a practice set, and review your progress across the ABPN study site.</p>
         </div>
         <div class="dashboard-region dashboard-region-welcome-tools" data-dashboard-region="welcome-tools"></div>
       </section>
@@ -41,36 +41,19 @@
         <div class="device-sync-heading">
           <div>
             <div class="card-kicker">DEVICE SYNC</div>
-            <h3 id="deviceSyncTitle">Keep your progress available on every device</h3>
-            <p>Your answers are stored in each browser. Google Drive safely transfers the latest study state between your phone, tablet, and computer.</p>
+            <h3 id="deviceSyncTitle">Keep your newest progress on every device</h3>
+            <p>The app securely compares this browser with your private Google Drive copy and uses the clearly newer one.</p>
           </div>
           <div id="deviceSyncStatus" class="device-sync-status neutral" aria-live="polite">Not connected</div>
         </div>
-
-        <div class="device-sync-steps" aria-label="Three steps for moving study progress between devices">
-          <div class="device-sync-step">
-            <span class="device-sync-number">1</span>
-            <div><strong>Start on the device with your newest progress</strong><span>Connect the same Google account you will use on your other devices.</span></div>
-          </div>
-          <div class="device-sync-step">
-            <span class="device-sync-number">2</span>
-            <div><strong>Back up this device</strong><span>Press the backup button before changing devices, or wait for automatic backup to finish.</span></div>
-          </div>
-          <div class="device-sync-step">
-            <span class="device-sync-number">3</span>
-            <div><strong>Restore on the other device</strong><span>Open this page there, connect the same account, then restore Drive onto that browser.</span></div>
-          </div>
+        <div id="deviceSyncMessage" class="device-sync-message" aria-live="polite">
+          <strong>Connect to check your saved progress</strong>
+          <span>Nothing is replaced until the comparison is complete.</span>
         </div>
-
-        <div class="device-sync-actions" role="group" aria-label="Cross-device sync controls">
-          <button type="button" id="deviceSyncConnect" class="primary-button" disabled>Connect Google Drive</button>
-          <button type="button" id="deviceSyncBackup" class="secondary-button" disabled>Back up this device</button>
-          <button type="button" id="deviceSyncRestore" class="secondary-button" disabled>Restore Drive onto this device</button>
-          <button type="button" id="deviceSyncDetails" class="secondary-button">More sync details</button>
+        <div class="device-sync-single-action">
+          <button type="button" id="deviceSyncNow" class="primary-button">Connect and sync</button>
+          <div id="deviceSyncLastSync" class="field-help">No completed sync recorded on this browser.</div>
         </div>
-
-        <div id="deviceSyncMessage" class="device-sync-message" aria-live="polite"><strong>Important:</strong> use one device at a time. Before switching, make sure the latest device has completed a backup.</div>
-        <div id="deviceSyncLastSync" class="field-help">Last successful sync: Never</div>
       </section>
 
       <section class="dashboard-grid">
@@ -169,7 +152,7 @@
 
   <div id="examScreen" class="exam-screen" hidden>
     <div id="examLoading" class="exam-loading">Opening your practice set…</div>
-    <iframe id="examFrame" title="Psychiatry Board Practice Exam"></iframe>
+    <iframe id="examFrame" title="ABPN Psychiatry Practice Exam"></iframe>
   </div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -177,6 +160,7 @@
   <script src="./data.js?v=3"></script>
   <script src="./generated/question-bank-catalog.js?v=1"></script>
   <script src="./questions-global.js?v=2"></script>
+  <script src="./boards-site-identity.js?v=1"></script>
   <script src="./boards-store.js?v=2"></script>
   <script src="./boards-core.js?v=5"></script>
   <script src="./ui/dashboard-registry.js?v=1"></script>
@@ -195,7 +179,7 @@
   <script src="./boards-visible-drive-client.js?v=2"></script>
   <script src="./boards-vault-bank-scope.js?v=1"></script>
   <script src="./boards-drive-backup.js?v=5"></script>
-  <script src="./boards-device-sync.js?v=3"></script>
+  <script src="./boards-device-sync.js?v=4"></script>
   <script src="./boards-question-vault.js?v=3"></script>
   <script src="./boards-hard-reset-service.js?v=1"></script>
   <script src="./boards-hard-reset-controller.js?v=1"></script>
