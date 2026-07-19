@@ -28,6 +28,8 @@ jobs:
         run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
       - name: Run desktop and mobile browser smoke tests
         run: node scripts/browser-smoke-runner.mjs
+      - name: Run end-to-end practice exam smoke test
+        run: node scripts/exam-smoke.mjs
       - name: Upload browser smoke results
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -37,6 +39,16 @@ jobs:
             ui-smoke-report.json
             ui-smoke-desktop.png
             ui-smoke-mobile.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload exam-flow smoke results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: exam-flow-smoke-results
+          path: |
+            exam-smoke-report.json
+            exam-smoke-dashboard.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload validation report on failure
