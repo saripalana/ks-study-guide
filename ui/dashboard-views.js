@@ -17,6 +17,52 @@
     return '<div class="analytics-empty">' + escapeHtml(message) + '</div>';
   }
 
+  function summaryStats(items) {
+    return (items || []).map(function (item) {
+      return '<div class="stat-card ' + escapeHtml(item.className || '') + '"><div class="stat-value">' +
+        escapeHtml(item.value) + '</div><div class="stat-label">' + escapeHtml(item.label) + '</div></div>';
+    }).join('');
+  }
+
+  function resumeCard(model) {
+    if (!model) return '';
+    return '<div class="resume-heading"><div><div class="card-kicker">' +
+      escapeHtml(model.completed ? 'COMPLETED SET' : 'CURRENT SET') + '</div><h3>' + escapeHtml(model.count) +
+      '-question ' + escapeHtml(model.label) + '</h3><div class="field-help">' + escapeHtml(model.timeLabel) +
+      '</div></div><span class="resume-mode">' + escapeHtml(model.modeLabel) + '</span></div>' +
+      '<div class="resume-meta"><div class="resume-metric"><strong>' + escapeHtml(model.answered) +
+      '</strong><span>Answered</span></div><div class="resume-metric"><strong>' + escapeHtml(model.remaining) +
+      '</strong><span>Remaining</span></div><div class="resume-metric"><strong>' + escapeHtml(model.flagged) +
+      '</strong><span>Flagged</span></div></div>' +
+      '<div class="resume-actions"><button type="button" id="resumeSetBtn" class="primary-button">' +
+      escapeHtml(model.completed ? 'Review set' : 'Resume set') +
+      '</button><button type="button" id="discardSetBtn" class="secondary-button">Remove set</button></div>';
+  }
+
+  function bankLegend() {
+    return '<span class="legend-item"><span class="legend-swatch unused"></span>Unused</span>' +
+      '<span class="legend-item"><span class="legend-swatch answered"></span>Answered, not scored</span>' +
+      '<span class="legend-item"><span class="legend-swatch correct"></span>Correct</span>' +
+      '<span class="legend-item"><span class="legend-swatch incorrect"></span>Incorrect / omitted</span>' +
+      '<span class="legend-item"><span class="legend-swatch flagged"></span>Flagged</span>';
+  }
+
+  function bankFilters(filters, currentFilter) {
+    return (filters || []).map(function (item) {
+      return '<button type="button" class="filter-button ' + (currentFilter === item[0] ? 'selected' : '') +
+        '" data-filter="' + escapeHtml(item[0]) + '">' + escapeHtml(item[1]) + '</button>';
+    }).join('');
+  }
+
+  function questionBankTiles(items) {
+    return (items || []).map(function (item) {
+      return '<button type="button" class="bank-tile ' + escapeHtml(item.status) +
+        (item.flagged ? ' flagged' : '') + (item.matches ? '' : ' filtered-out') +
+        '" data-question-id="' + escapeHtml(item.id) + '" title="' + escapeHtml(item.title) +
+        '" aria-label="' + escapeHtml(item.title) + '">' + escapeHtml(item.number) + '</button>';
+    }).join('');
+  }
+
   function createAnalyticsSection() {
     return fromHtml(
       '<section id="analyticsSection" class="analytics-section">' +
@@ -156,6 +202,11 @@
   }
 
   window.BoardsDashboardViews = Object.freeze({
+    summaryStats: summaryStats,
+    resumeCard: resumeCard,
+    bankLegend: bankLegend,
+    bankFilters: bankFilters,
+    questionBankTiles: questionBankTiles,
     createAnalyticsSection: createAnalyticsSection,
     createTestReviewModal: createTestReviewModal,
     analyticsMetrics: analyticsMetrics,
