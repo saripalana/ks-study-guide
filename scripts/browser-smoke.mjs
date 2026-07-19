@@ -41,6 +41,11 @@ function contentType(file) {
 
 const server = http.createServer((request, response) => {
   const rawPath = decodeURIComponent(new URL(request.url, 'http://127.0.0.1').pathname);
+  if (rawPath === '/favicon.ico') {
+    response.writeHead(204, { 'Cache-Control': 'no-store' });
+    response.end();
+    return;
+  }
   const relative = rawPath === '/' ? 'boards.html' : rawPath.replace(/^\/+/, '');
   const file = path.resolve(root, relative);
   if (!file.startsWith(root + path.sep) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
