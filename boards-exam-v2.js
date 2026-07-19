@@ -6,9 +6,12 @@
   const examScreen = document.getElementById('examScreen');
   const examFrame = document.getElementById('examFrame');
   const examLoading = document.getElementById('examLoading');
+  const runtimePayloads = Object.create(null);
+  window.BoardsExamRuntimePayloads = runtimePayloads;
 
   function showDashboard() {
     C.syncActiveSetResults();
+    examFrame.removeAttribute('srcdoc');
     examFrame.src = 'about:blank';
     examScreen.hidden = true;
     dashboardScreen.hidden = false;
@@ -16,7 +19,32 @@
     window.BoardsDashboard.render();
   }
 
-  function launch() {
+  function runtimeBootstrapScript(token) {
+    return '<script>(function(){' +
+      'var payload=window.parent.BoardsExamRuntimePayloads&&window.parent.BoardsExamRuntimePayloads["' + token + '"];' +
+      'if(!payload)throw new Error("Practice runtime payload is unavailable.");' +
+      'window.BOARDS_RUNTIME_CONFIG=payload;' +
+      'window.QUESTIONS=payload.questions.slice();' +
+      'var appKey=payload.keys.app;' +
+      'var proto=Storage.prototype;' +
+      'var nativeGet=proto.getItem,nativeSet=proto.setItem,nativeRemove=proto.removeItem;' +
+      'proto.getItem=function(key){return nativeGet.call(this,key==="kaplanBoardPrepState"?appKey:key);};' +
+      'proto.setItem=function(key,value){return nativeSet.call(this,key==="kaplanBoardPrepState"?appKey:key,value);};' +
+      'proto.removeItem=function(key){return nativeRemove.call(this,key==="kaplanBoardPrepState"?appKey:key);};' +
+      'delete window.parent.BoardsExamRuntimePayloads["' + token + '"];' +
+      '})();<\/script>';
+  }
+
+  async function buildRuntimeDocument(token) {
+    const response = await fetch('./index.html?boards-runtime-template=' + Date.now(), { cache: 'no-store' });
+    if (!response.ok) throw new Error('The study runtime template could not be loaded.');
+    const html = await response.text();
+    const scripts = '<script src="data.js?v=3"></script>\n<script src="app.js?v=3"></script>';
+    if (!html.includes(scripts)) throw new Error('The study runtime script markers were not found.');
+    return html.replace(scripts, runtimeBootstrapScript(token) + '\n<script src="app.js?v=3"></script>');
+  }
+
+  async function launch() {
     const config = C.activeConfig();
     if (!config) return;
     config.lastOpenedAt = Date.now();
@@ -26,30 +54,48 @@
     examLoading.style.display = 'flex';
     examLoading.textContent = 'Opening your practice set…';
     document.body.style.overflow = 'hidden';
-    examFrame.src = './index.html?boards=' + Date.now();
+
+    const token = 'runtime-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    runtimePayloads[token] = {
+      bank: C.activeBank,
+      keys: { app: C.KEY.app, config: C.KEY.config, history: C.KEY.history },
+      questions: C.fullBank.slice()
+    };
+
+    try {
+      const documentText = await buildRuntimeDocument(token);
+      examFrame.removeAttribute('src');
+      examFrame.srcdoc = documentText;
+    } catch (error) {
+      delete runtimePayloads[token];
+      examLoading.textContent = 'The practice set could not be opened. Return to the dashboard and try again.';
+      console.error(error);
+    }
   }
 
-  function examBootstrap() {
+  function examBootstrap(runtime) {
     'use strict';
 
     const VERSION = 'v3';
-    const KEY = {
+    const value = runtime || window.BOARDS_RUNTIME_CONFIG || {};
+    const KEY = value.keys || {
       config: 'ksBoardsActiveSet' + VERSION,
       history: 'ksBoardsHistory' + VERSION,
       app: 'kaplanBoardPrepState'
     };
+    const bank = value.bank || { id: 'ks-psychiatry-core', title: 'K&S Psychiatry Question Bank', shortTitle: 'K&S Psychiatry' };
 
     function readJson(key, fallback) {
       try {
-        const value = JSON.parse(localStorage.getItem(key) || 'null');
-        return value === null ? fallback : value;
+        const stored = JSON.parse(localStorage.getItem(key) || 'null');
+        return stored === null ? fallback : stored;
       } catch (error) {
         return fallback;
       }
     }
 
-    function writeJson(key, value) {
-      localStorage.setItem(key, JSON.stringify(value));
+    function writeJson(key, stored) {
+      localStorage.setItem(key, JSON.stringify(stored));
     }
 
     function getState() {
@@ -63,22 +109,22 @@
 
     function formatClock(totalSeconds) {
       const total = Math.max(0, Math.ceil(totalSeconds));
-      const two = function (n) { return String(n).padStart(2, '0'); };
+      const two = function (number) { return String(number).padStart(2, '0'); };
       return two(Math.floor(total / 3600)) + ':' + two(Math.floor((total % 3600) / 60)) + ':' + two(total % 60);
     }
 
     function notify(action) {
-      window.parent.postMessage({ type: 'ksBoardsV3', action: action }, window.location.origin);
+      window.parent.postMessage({ type: 'ksBoardsV3', action: action, bankId: bank.id }, '*');
     }
 
     const config = readJson(KEY.config, null);
-    if (!config || !Array.isArray(config.ids) || !config.ids.length) {
+    if (!config || !Array.isArray(config.ids) || !config.ids.length || (config.bankId && config.bankId !== bank.id)) {
       notify('exit');
       return;
     }
 
     const originalBank = QUESTIONS.slice();
-    const map = new Map(originalBank.map(function (q) { return [q.id, q]; }));
+    const map = new Map(originalBank.map(function (question) { return [question.id, question]; }));
     const selectedQuestions = config.ids.map(function (id) { return map.get(id); }).filter(Boolean);
     if (!selectedQuestions.length) {
       notify('exit');
@@ -86,8 +132,13 @@
     }
 
     QUESTIONS.splice(0, QUESTIONS.length);
-    selectedQuestions.forEach(function (q) { QUESTIONS.push(q); });
+    selectedQuestions.forEach(function (question) { QUESTIONS.push(question); });
     document.body.classList.add('boards-exam-active');
+
+    const pageHeading = document.querySelector('#studyScreen header h1');
+    const footer = document.querySelector('#studyScreen footer');
+    if (pageHeading) pageHeading.textContent = bank.title;
+    if (footer) footer.textContent = selectedQuestions.length + ' selected questions from ' + bank.title + ' — personal study use.';
 
     const chapterSelect = document.getElementById('chapterSelect');
     if (chapterSelect) {
@@ -110,7 +161,7 @@
     const customHeader = document.createElement('div');
     customHeader.className = 'boards-exam-header';
     customHeader.innerHTML =
-      '<div><div class="boards-exam-title">Psychiatry Board Practice</div><div class="boards-exam-subtitle">' + selectedQuestions.length + ' questions · Unofficial ABPN-style practice</div></div>' +
+      '<div><div class="boards-exam-title">Psychiatry Board Practice</div><div class="boards-exam-subtitle">' + bank.shortTitle + ' · ' + selectedQuestions.length + ' questions · Unofficial ABPN-style practice</div></div>' +
       '<div class="boards-exam-actions">' +
       '<span class="boards-mode-badge">' + (config.mode === 'test' ? 'TEST MODE' : 'TUTOR MODE') + '</span>' +
       '<span id="boardsLiveTimer" class="boards-live-timer">' + (config.timed ? '00:00:00' : 'UNTIMED') + '</span>' +
@@ -162,14 +213,14 @@
       if (currentConfig.mode === 'quiz') {
         currentConfig.ids.forEach(function (id) {
           const answer = state.answered[id];
-          if (answer) history[id] = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor' };
+          if (answer) history[id] = { status: answer.correct ? 'correct' : 'incorrect', timestamp: now, source: 'tutor', bankId: bank.id };
         });
       } else if (state.testSubmitted['all|study']) {
         currentConfig.ids.forEach(function (id) {
-          const q = map.get(id);
-          if (!q) return;
+          const question = map.get(id);
+          if (!question) return;
           const selected = state.testAnswers[id];
-          history[id] = { status: !selected ? 'omitted' : (selected === q.correctLetter ? 'correct' : 'incorrect'), timestamp: now, source: 'test' };
+          history[id] = { status: !selected ? 'omitted' : (selected === question.correctLetter ? 'correct' : 'incorrect'), timestamp: now, source: 'test', bankId: bank.id };
         });
         forceComplete = true;
       }
@@ -186,18 +237,18 @@
     function statuses() {
       const state = getState();
       const submitted = !!state.testSubmitted['all|study'];
-      return selectedQuestions.map(function (q) {
+      return selectedQuestions.map(function (question) {
         let status = 'unanswered';
         if (config.mode === 'quiz') {
-          const answer = state.answered[q.id];
+          const answer = state.answered[question.id];
           if (answer) status = answer.correct ? 'correct' : 'incorrect';
         } else if (submitted) {
-          const selected = state.testAnswers[q.id];
-          status = !selected ? 'omitted' : (selected === q.correctLetter ? 'correct' : 'incorrect');
-        } else if (state.testAnswers[q.id]) {
+          const selected = state.testAnswers[question.id];
+          status = !selected ? 'omitted' : (selected === question.correctLetter ? 'correct' : 'incorrect');
+        } else if (state.testAnswers[question.id]) {
           status = 'answered';
         }
-        return { status: status, flagged: !!state.flagged[q.id] };
+        return { status: status, flagged: !!state.flagged[question.id] };
       });
     }
 
@@ -313,7 +364,7 @@
 
   function init() {
     examFrame.addEventListener('load', function () {
-      if (!examFrame.src || examFrame.src === 'about:blank') return;
+      if (!examFrame.hasAttribute('srcdoc')) return;
       try {
         const doc = examFrame.contentDocument;
         const css = doc.createElement('link');
@@ -321,7 +372,7 @@
         css.href = './boards-exam.css?v=3';
         doc.head.appendChild(css);
         const script = doc.createElement('script');
-        script.textContent = '(' + examBootstrap.toString() + ')();';
+        script.textContent = '(' + examBootstrap.toString() + ')(window.BOARDS_RUNTIME_CONFIG);';
         doc.body.appendChild(script);
         examLoading.style.display = 'none';
       } catch (error) {
@@ -331,9 +382,11 @@
     });
 
     window.addEventListener('message', function (event) {
-      if (event.origin !== window.location.origin || event.source !== examFrame.contentWindow) return;
+      if (event.source !== examFrame.contentWindow) return;
+      if (event.origin !== window.location.origin && event.origin !== 'null') return;
       const message = event.data || {};
       if (message.type !== 'ksBoardsV3') return;
+      if (message.bankId && message.bankId !== C.activeBank.id) return;
       if (message.action === 'exit') showDashboard();
       if (message.action === 'status') C.syncActiveSetResults();
     });
