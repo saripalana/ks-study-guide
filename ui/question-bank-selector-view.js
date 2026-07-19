@@ -1,3 +1,5 @@
+import '../boards-exam-bank-frame-bridge.js?v=1';
+
 (function () {
   'use strict';
 
