@@ -26,6 +26,8 @@ jobs:
           exit $status
       - name: Validate automatic Device Sync safeguards
         run: node scripts/validate-device-sync.mjs
+      - name: Validate question-bank isolation and runtime safeguards
+        run: node scripts/validate-question-banks.mjs
       - name: Install browser smoke-test harness
         run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
       - name: Run desktop and mobile browser smoke tests
@@ -34,6 +36,8 @@ jobs:
         run: node scripts/device-sync-smoke.mjs
       - name: Run end-to-end practice exam smoke test
         run: node scripts/exam-smoke.mjs
+      - name: Run expandable question-bank and second-bank exam test
+        run: node scripts/question-bank-selector-smoke.mjs
       - name: Upload browser smoke results
         if: always() && github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
@@ -63,6 +67,17 @@ jobs:
           path: |
             exam-smoke-report.json
             exam-smoke-dashboard.png
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Upload question-bank selector results
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: question-bank-selector-results
+          path: |
+            question-bank-selector-report.json
+            question-bank-selector-ks.png
+            question-bank-selector-future.png
           if-no-files-found: ignore
           retention-days: 7
       - name: Upload validation report on failure
