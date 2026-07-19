@@ -114,7 +114,7 @@
     }
 
     function notify(action) {
-      window.parent.postMessage({ type: 'ksBoardsV3', action: action, bankId: bank.id }, window.location.origin);
+      window.parent.postMessage({ type: 'ksBoardsV3', action: action, bankId: bank.id }, '*');
     }
 
     const config = readJson(KEY.config, null);
@@ -382,7 +382,8 @@
     });
 
     window.addEventListener('message', function (event) {
-      if (event.origin !== window.location.origin || event.source !== examFrame.contentWindow) return;
+      if (event.source !== examFrame.contentWindow) return;
+      if (event.origin !== window.location.origin && event.origin !== 'null') return;
       const message = event.data || {};
       if (message.type !== 'ksBoardsV3') return;
       if (message.bankId && message.bankId !== C.activeBank.id) return;
