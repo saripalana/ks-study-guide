@@ -4,7 +4,8 @@
   const Config = window.BoardsConfig;
   if (!Config) throw new Error('BoardsConfig must load before BoardsStore.');
 
-  const knownKeys = new Set(Config.storage.backupKeys.concat([Config.storage.keys.driveSettings]));
+  const Keys = Config.storage.keys;
+  const knownKeys = new Set(Config.storage.backupKeys.concat([Keys.driveSettings]));
   const subscribers = new Set();
 
   function clone(value) {
@@ -12,11 +13,56 @@
     return JSON.parse(JSON.stringify(value));
   }
 
+  function bankIdentity(target) {
+    if (!target || typeof target !== 'object' || Array.isArray(target)) return target;
+    target.bankId = Config.bank.id;
+    target.bankTitle = Config.bank.title;
+    target.bankQuestionHash = Config.bank.questionHash;
+    return target;
+  }
+
+  function normalizeSnapshotIdentity(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return snapshot;
+    if (!snapshot.bankId && Config.bank.legacyStorage) snapshot.bankId = Config.bank.id;
+    if (snapshot.bankId === Config.bank.id) {
+      snapshot.bankTitle = snapshot.bankTitle || Config.bank.title;
+      snapshot.bankQuestionHash = snapshot.bankQuestionHash || Config.bank.questionHash;
+      snapshot.storageNamespace = Config.bank.storageNamespace;
+    }
+    return snapshot;
+  }
+
+  function normalizeForKey(key, value) {
+    const normalized = clone(value);
+    if (key === Keys.app || key === Keys.config || key === Keys.settings || key === Keys.driveSettings) {
+      return bankIdentity(normalized && typeof normalized === 'object' ? normalized : {});
+    }
+    if (key === Keys.history && normalized && typeof normalized === 'object' && !Array.isArray(normalized)) {
+      Object.keys(normalized).forEach(function (id) {
+        if (normalized[id] && typeof normalized[id] === 'object') bankIdentity(normalized[id]);
+      });
+      return normalized;
+    }
+    if (key === Keys.tests && Array.isArray(normalized)) {
+      return normalized.map(function (test) { return bankIdentity(test && typeof test === 'object' ? test : {}); });
+    }
+    if (key === Keys.localBackups && Array.isArray(normalized)) {
+      return normalized.map(function (backup) {
+        if (!backup || typeof backup !== 'object') return backup;
+        bankIdentity(backup);
+        if (backup.state) normalizeSnapshotIdentity(backup.state);
+        if (backup.snapshot) normalizeSnapshotIdentity(backup.snapshot);
+        return backup;
+      });
+    }
+    return normalized;
+  }
+
   function read(key, fallback) {
     try {
       const raw = localStorage.getItem(key);
       if (raw === null) return clone(fallback);
-      return JSON.parse(raw);
+      return normalizeForKey(key, JSON.parse(raw));
     } catch (error) {
       console.warn('Could not read stored value:', key, error);
       return clone(fallback);
@@ -32,9 +78,10 @@
   }
 
   function write(key, value, options) {
-    localStorage.setItem(key, JSON.stringify(value));
+    const normalized = normalizeForKey(key, value);
+    localStorage.setItem(key, JSON.stringify(normalized));
     emit({ action: 'write', key: key, reason: options && options.reason });
-    return value;
+    return normalized;
   }
 
   function remove(key, options) {
@@ -61,7 +108,7 @@
 
   function sortedBackupKeys(includeLocalRecovery) {
     return Config.storage.backupKeys.filter(function (key) {
-      return includeLocalRecovery || key !== Config.storage.keys.localBackups;
+      return includeLocalRecovery || key !== Keys.localBackups;
     }).slice().sort();
   }
 
@@ -85,10 +132,10 @@
     sortedBackupKeys(!!includeLocalRecovery).forEach(function (key) {
       const raw = localStorage.getItem(key);
       if (raw === null) {
-        if (key === Config.storage.keys.app) data[key] = {};
+        if (key === Keys.app) data[key] = bankIdentity({});
         return;
       }
-      try { data[key] = JSON.parse(raw); }
+      try { data[key] = normalizeForKey(key, JSON.parse(raw)); }
       catch (error) { data[key] = { __raw: raw }; }
     });
     const canonical = canonicalData(data);
@@ -147,7 +194,7 @@
 
     const safeData = {};
     Object.keys(data).forEach(function (key) {
-      if (Config.storage.backupKeys.indexOf(key) >= 0) safeData[key] = data[key];
+      if (Config.storage.backupKeys.indexOf(key) >= 0) safeData[key] = normalizeForKey(key, data[key]);
     });
     if (!Object.keys(safeData).length) throw new Error('Backup contains no recognized study-data keys for ' + Config.bank.title + '.');
 
@@ -157,7 +204,7 @@
       app: snapshot.app || 'ks-study-guide',
       bankId: Config.bank.id,
       bankTitle: snapshot.bankTitle || Config.bank.title,
-      bankQuestionHash: snapshot.bankQuestionHash || '',
+      bankQuestionHash: snapshot.bankQuestionHash || Config.bank.questionHash,
       storageNamespace: Config.bank.storageNamespace,
       kind: snapshot.kind || 'history',
       createdAt: Number(snapshot.createdAt) || Date.now(),
@@ -180,7 +227,7 @@
       if (value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, '__raw')) {
         localStorage.setItem(key, String(value.__raw));
       } else {
-        localStorage.setItem(key, JSON.stringify(value));
+        localStorage.setItem(key, JSON.stringify(normalizeForKey(key, value)));
       }
     });
     emit({ action: 'restore', key: '*', reason: normalized.reason });
@@ -213,6 +260,7 @@
     applySnapshot: applySnapshot,
     exportRawMap: exportRawMap,
     hashString: hashString,
-    canonicalData: canonicalData
+    canonicalData: canonicalData,
+    normalizeForKey: normalizeForKey
   });
 })();
