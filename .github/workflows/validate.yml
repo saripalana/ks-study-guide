@@ -1,15 +1,15 @@
-name: Apply UI refactor
+name: Diagnose UI refactor patch
 
 on:
   pull_request:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  apply:
-    if: github.head_ref == 'refactor/ui-foundation' && github.actor != 'github-actions[bot]'
+  diagnose:
+    if: github.head_ref == 'refactor/ui-foundation'
     runs-on: ubuntu-latest
     steps:
       - name: Check out refactor branch
@@ -17,10 +17,11 @@ jobs:
         with:
           ref: refactor/ui-foundation
           fetch-depth: 0
-      - name: Apply remaining presentation refactor
+      - name: Inspect remaining staged patch
         run: |
-          set -euo pipefail
-          base64 --decode scripts/ui-refactor-no-workflow.patch.gz.b64 | gzip -d > /tmp/ui-refactor.patch
+          set +e
+          base64 --decode scripts/ui-refactor-no-workflow.patch.gz.b64 | gzip -d > ui-refactor.patch
+          git apply --numstat ui-refactor.patch > patch-files.txt 2>&1
           excludes=(
             --exclude=boards.html
             --exclude=boards-maintenance.js
@@ -28,75 +29,15 @@ jobs:
             --exclude=styles/feature-panels.css
             --exclude=ui/panel-templates.js
           )
-          git apply --check "${excludes[@]}" /tmp/ui-refactor.patch
-          git apply "${excludes[@]}" /tmp/ui-refactor.patch
-          rm scripts/ui-refactor-no-workflow.patch.gz.b64
-          cat > .github/workflows/validate.yml <<'FINALWORKFLOW'
-          name: Validate study app
-
-          on:
-            push:
-              branches: [main]
-            pull_request:
-
-          permissions:
-            contents: read
-
-          jobs:
-            validate:
-              runs-on: ubuntu-latest
-              steps:
-                - name: Check out repository
-                  uses: actions/checkout@v4
-                - name: Set up Node.js
-                  uses: actions/setup-node@v4
-                  with:
-                    node-version: '24'
-                - name: Run static validation
-                  run: |
-                    set +e
-                    node scripts/validate.mjs 2>&1 | tee validation-report.txt
-                    status=${PIPESTATUS[0]}
-                    exit $status
-                - name: Install browser smoke-test harness
-                  run: npm install --no-save --no-package-lock puppeteer-core@24.16.0
-                - name: Run browser smoke tests
-                  run: node scripts/browser-smoke.mjs
-                - name: Upload browser smoke results
-                  if: always() && github.event_name == 'pull_request'
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: ui-browser-smoke-results
-                    path: |
-                      ui-smoke-report.json
-                      ui-smoke-desktop.png
-                      ui-smoke-mobile.png
-                    if-no-files-found: ignore
-                    retention-days: 7
-                - name: Upload browser-test bundle
-                  if: success() && github.event_name == 'pull_request'
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: ui-browser-test-bundle
-                    path: |
-                      .
-                      !.git
-                      !node_modules
-                      !validation-report.txt
-                      !ui-smoke-report.json
-                      !ui-smoke-desktop.png
-                      !ui-smoke-mobile.png
-                    retention-days: 3
-                - name: Upload validation report on failure
-                  if: failure()
-                  uses: actions/upload-artifact@v4
-                  with:
-                    name: validation-report
-                    path: validation-report.txt
-                    retention-days: 7
-          FINALWORKFLOW
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Complete dashboard presentation separation and browser tests"
-          git push origin HEAD:refactor/ui-foundation
+          git apply --check --verbose "${excludes[@]}" ui-refactor.patch > apply-check.txt 2>&1
+          echo $? > apply-status.txt
+          exit 0
+      - name: Upload patch diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-refactor-patch-diagnostics
+          path: |
+            patch-files.txt
+            apply-check.txt
+            apply-status.txt
+          retention-days: 2
