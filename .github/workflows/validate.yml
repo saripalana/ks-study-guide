@@ -17,12 +17,19 @@ jobs:
         with:
           ref: refactor/ui-foundation
           fetch-depth: 0
-      - name: Apply staged presentation refactor
+      - name: Apply remaining presentation refactor
         run: |
           set -euo pipefail
           base64 --decode scripts/ui-refactor-no-workflow.patch.gz.b64 | gzip -d > /tmp/ui-refactor.patch
-          git apply --check /tmp/ui-refactor.patch
-          git apply /tmp/ui-refactor.patch
+          excludes=(
+            --exclude=boards.html
+            --exclude=boards-maintenance.js
+            --exclude=scripts/validate.mjs
+            --exclude=styles/feature-panels.css
+            --exclude=ui/panel-templates.js
+          )
+          git apply --check "${excludes[@]}" /tmp/ui-refactor.patch
+          git apply "${excludes[@]}" /tmp/ui-refactor.patch
           rm scripts/ui-refactor-no-workflow.patch.gz.b64
           cat > .github/workflows/validate.yml <<'FINALWORKFLOW'
           name: Validate study app
@@ -91,5 +98,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "Centralize dashboard presentation and browser regression tests"
+          git commit -m "Complete dashboard presentation separation and browser tests"
           git push origin HEAD:refactor/ui-foundation
