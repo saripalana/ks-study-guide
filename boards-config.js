@@ -5,6 +5,7 @@
   const SELECTION_KEY = 'ksBoardsSelectedQuestionBankV1';
   const CATALOG_EVENT = 'ksboards:question-bank-catalog-changed';
   const ACTIVE_EVENT = 'ksboards:active-question-bank-changed';
+  const LEGACY_VAULT = Object.freeze({ datasetId: 'psychiatry-board-question-bank', testIndex: 'completed-tests-index.json' });
 
   function cleanId(value) {
     const id = String(value || '').trim().toLowerCase();
@@ -217,7 +218,7 @@
       }),
       questionVault: Object.freeze({
         schemaVersion: 1,
-        datasetId: legacy ? 'psychiatry-board-question-bank' : 'psychiatry-board-question-bank-' + activeBank.id,
+        datasetId: legacy ? LEGACY_VAULT.datasetId : LEGACY_VAULT.datasetId + '-' + activeBank.id,
         bankId: activeBank.id,
         bankTitle: activeBank.title,
         bankFolder: activeBank.id,
@@ -232,7 +233,7 @@
           performance: vaultPrefix + 'question-performance.json',
           correlated: vaultPrefix + 'question-bank-correlated-latest.json',
           draft: vaultPrefix + 'question-bank-draft.json',
-          testIndex: vaultPrefix + 'completed-tests-index.json'
+          testIndex: vaultPrefix + LEGACY_VAULT.testIndex
         }),
         performanceSyncMinMs: 60000
       }),
